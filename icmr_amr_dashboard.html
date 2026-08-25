@@ -1,0 +1,3386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>India AMR Surveillance Dashboard — ICMR AMRSN · NARS-Net · WHO GLASS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --primary: #1a3a5c;
+    --accent: #c0392b;
+    --accent2: #2980b9;
+    --text: #1a1a2e;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --ecoli: #e74c3c;
+    --kpneu: #e67e22;
+    --abau: #8e44ad;
+    --paer: #2980b9;
+    --mrsa: #27ae60;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  header { background: var(--primary); color: #fff; }
+  .header-inner { max-width: 1280px; margin: 0 auto; padding: 18px 24px 0; }
+  .header-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 10px; }
+  .header-logo { width: 48px; height: 48px; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-title h1 { font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
+  .header-title p { font-size: 0.8rem; opacity: 0.72; margin-top: 3px; }
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill { background: rgba(255,255,255,0.14); border-radius: 20px; padding: 2px 10px; font-size: 0.72rem; }
+
+  nav { background: var(--primary); border-top: 1px solid rgba(255,255,255,0.1); }
+  nav ul { max-width: 1280px; margin: 0 auto; padding: 0 24px; list-style: none; display: flex; gap: 0; overflow-x: auto; }
+  nav ul li a { display: block; padding: 11px 15px; color: rgba(255,255,255,0.65); text-decoration: none; font-size: 0.82rem; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.15s; cursor: pointer; white-space: nowrap; }
+  nav ul li a:hover { color: #fff; }
+  nav ul li a.active { color: #fff; border-bottom-color: #e8b84b; }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 24px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); border-left: 4px solid var(--accent); }
+  .stat-card .label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .stat-card .value { font-size: 1.7rem; font-weight: 700; line-height: 1.1; margin: 3px 0 2px; }
+  .stat-card .sub { font-size: 0.72rem; color: var(--muted); }
+  .trend-up { color: #e74c3c; font-weight: 600; }
+  .trend-down { color: #27ae60; font-weight: 600; }
+
+  .chart-card { background: var(--card); border-radius: 12px; padding: 18px 22px; box-shadow: var(--shadow); margin-bottom: 18px; }
+  .chart-card h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 3px; }
+  .chart-sub { font-size: 0.76rem; color: var(--muted); margin-bottom: 14px; }
+  .chart-wrap { position: relative; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+
+  .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .control-row label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  select { border: 1px solid var(--border); background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; cursor: pointer; color: var(--text); }
+  .btn-group { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .btn-group button { border: none; border-radius: 0; border-right: 1px solid var(--border); background: #fff; padding: 6px 12px; font-size: 0.79rem; cursor: pointer; color: var(--text); transition: background 0.15s; }
+  .btn-group button:last-child { border-right: none; }
+  .btn-group button.active { background: var(--primary); color: #fff; }
+  .btn-group button:hover:not(.active) { background: #f3f4f6; }
+
+  .pathogen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 14px; margin-bottom: 18px; }
+  .pathogen-card { background: var(--card); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; border-top: 4px solid #ccc; }
+  .pathogen-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+  .pathogen-card.selected { box-shadow: 0 0 0 2px var(--primary), 0 4px 16px rgba(0,0,0,0.12); }
+  .pathogen-card h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 3px; }
+  .pathogen-card .sci { font-style: italic; font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; }
+  .pathogen-card .big { font-size: 1.9rem; font-weight: 700; }
+  .pathogen-card .sub2 { font-size: 0.7rem; color: var(--muted); }
+  .pathogen-card .from { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { background: var(--primary); color: #fff; padding: 8px 11px; text-align: left; font-weight: 600; font-size: 0.74rem; }
+  td { padding: 7px 11px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: #f8f9fa; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+  .badge-red { background: #fde8e8; color: #c0392b; }
+  .badge-orange { background: #fef3e2; color: #d35400; }
+  .badge-yellow { background: #fef9c3; color: #b7791f; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  /* HEATMAP */
+  .heatmap-wrap { overflow-x: auto; }
+  .heatmap-table { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 0.78rem; }
+  .heatmap-table th { background: transparent; color: var(--text); padding: 6px 10px; font-weight: 600; text-align: center; white-space: nowrap; }
+  .heatmap-table td { padding: 8px 12px; border-radius: 6px; text-align: center; font-weight: 700; font-size: 0.82rem; border: none; min-width: 70px; }
+  .hm-row-label { text-align: left !important; font-weight: 600 !important; background: transparent !important; color: var(--text) !important; white-space: nowrap; }
+  .hm-na { background: #f3f4f6; color: #9ca3af; font-weight: 400 !important; }
+
+  /* ABX SELECTOR */
+  .abx-btn-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .abx-btn { border: 2px solid var(--border); background: #fff; border-radius: 8px; padding: 7px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; }
+  .abx-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .abx-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+  /* SPECIMEN BARS */
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; margin-bottom: 16px; }
+  .spec-card { background: var(--card); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .spec-card h4 { font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+  .spec-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .spec-bar-label { font-size: 0.72rem; color: var(--muted); width: 100px; flex-shrink: 0; }
+  .spec-bar-track { flex: 1; background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden; }
+  .spec-bar-fill { height: 8px; border-radius: 4px; }
+  .spec-bar-val { font-size: 0.72rem; font-weight: 700; width: 32px; text-align: right; flex-shrink: 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.76rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .alert { border-radius: 8px; padding: 10px 14px; font-size: 0.78rem; margin-bottom: 14px; }
+  .alert-warn { background: #fef9c3; border-left: 4px solid #f59e0b; color: #78350f; }
+  .alert-info { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e3a5f; }
+
+  .about-section { background: var(--card); border-radius: 12px; padding: 26px; box-shadow: var(--shadow); }
+  .about-section h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+  .about-section h3 { font-size: 0.88rem; font-weight: 700; margin: 16px 0 5px; color: var(--primary); }
+  .about-section p, .about-section li { font-size: 0.82rem; line-height: 1.7; color: #374151; }
+  .about-section ul { padding-left: 18px; margin: 5px 0; }
+
+  /* SITE EXPLORER */
+  .site-detail-card { background:var(--card); border-radius:12px; padding:18px 20px; box-shadow:var(--shadow); height:100%; }
+  .site-dot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-top:8px; }
+  .site-pill { background:#f3f4f6; border-radius:8px; padding:8px 10px; cursor:pointer; border:2px solid transparent; transition:all .15s; font-size:0.78rem; }
+  .site-pill:hover { border-color:var(--primary); background:#eff6ff; }
+  .site-pill.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+  .site-pill .sp-name { font-weight:700; display:block; }
+  .site-pill .sp-city { color:var(--muted); font-size:0.7rem; }
+  .site-pill.active .sp-city { color:rgba(255,255,255,.7); }
+  .region-badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:700; }
+  .reg-north { background:#dbeafe; color:#1e40af; }
+  .reg-south { background:#d1fae5; color:#065f46; }
+  .reg-east  { background:#fef3e2; color:#92400e; }
+  .reg-west  { background:#f3e8ff; color:#6b21a8; }
+  .reg-central { background:#fef9c3; color:#78350f; }
+  .reg-northeast { background:#ffe4e6; color:#9f1239; }
+  .map-canvas-wrap { position:relative; width:100%; }
+  #loading { position: fixed; inset: 0; background: rgba(255,255,255,0.92); display: flex; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.3s; }
+  #loading .spinner { width: 36px; height: 36px; border: 3px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer { max-width: 1280px; margin: 0 auto; padding: 16px 24px; font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div></div>
+
+<header>
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="header-logo">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="16" fill="#1a3a5c"/>
+          <ellipse cx="18" cy="18" rx="6" ry="13" stroke="#e8b84b" stroke-width="1.5" fill="none"/>
+          <ellipse cx="18" cy="18" rx="13" ry="6" stroke="#e8b84b" stroke-width="1.5" fill="none"/>
+          <circle cx="18" cy="18" r="2.8" fill="#e8b84b"/>
+          <circle cx="18" cy="5.5" r="1.4" fill="#c0392b"/>
+          <circle cx="18" cy="30.5" r="1.4" fill="#c0392b"/>
+          <circle cx="5.5" cy="18" r="1.4" fill="#c0392b"/>
+          <circle cx="30.5" cy="18" r="1.4" fill="#c0392b"/>
+        </svg>
+      </div>
+      <div class="header-title">
+        <h1>India AMR Surveillance Dashboard — ICMR AMRSN · NARS-Net · WHO GLASS</h1>
+        <p>ICMR AMRSN 2017–2024 · NARS-Net (NCDC) 2017–2023 · WHO GLASS 2018–2023 · Multi-Network Cross-Surveillance</p>
+      </div>
+    </div>
+    <div class="pill-row">
+      <span class="pill">🔬 ICMR AMRSN · Tertiary-care</span>
+      <span class="pill">🇮🇳 NARS-Net · 41 Govt sites</span>
+      <span class="pill">🌍 WHO GLASS · 127 countries</span>
+      <span class="pill">📊 8 years · 2017–2024</span>
+      <span class="pill">🧫 ~780,000 isolates (ICMR)</span>
+      <span class="pill">⚖️ Cross-surveillance comparison</span>
+      <span class="pill">🦠 9 priority pathogens</span>
+    </div>
+  </div>
+  <nav>
+    <ul>
+      <li><a class="active" onclick="showTab('overview',this)">📊 Overview</a></li>
+      <li><a onclick="showTab('trends',this)">📈 By Pathogen</a></li>
+      <li><a onclick="showTab('antibiotics',this)">💊 By Antibiotic</a></li>
+      <li><a onclick="showTab('matrix',this)">🟥 Resistance Matrix</a></li>
+      <li><a onclick="showTab('pathogens',this)">🦠 Pathogen Explorer</a></li>
+      <li><a onclick="showTab('specimen',this)">🔬 By Specimen</a></li>
+      <li><a onclick="showTab('special',this)">🦠 Special Pathogens</a></li>
+      <li><a onclick="showTab('molecular',this)">🧬 Molecular</a></li>
+      <li><a onclick="showTab('hai',this)">🏥 HAI & BSI</a></li>
+      <li><a onclick="showTab('setting',this)">⚙️ Care Setting</a></li>
+      <li><a onclick="showTab('velocity',this)">📊 Velocity</a></li>
+      <li><a onclick="showTab('sites',this)">📍 Site Explorer</a></li>
+      <li><a onclick="showTab('fungal',this)">🧫 Fungal AMR</a></li>
+      <li><a onclick="showTab('stewardship',this)">📋 Stewardship</a></li>
+      <li><a onclick="showTab('data',this)">🔎 Data Table</a></li>
+      <li><a onclick="showTab('about',this)">ℹ️ About</a></li>
+      <li><a onclick="showTab('glass',this)">🌍 WHO GLASS</a></li>
+      <li><a onclick="showTab('narsnet',this)">🇮🇳 NARS-Net</a></li>
+      <li><a onclick="showTab('compare',this)">⚖️ Cross-Surveillance</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+
+<!-- ===== OVERVIEW ===== -->
+<div id="tab-overview" class="tab-panel active">
+  <div class="alert alert-warn">⚠️ Data from ICMR tertiary-care network hospitals. Not representative of community-level resistance. 2020 data affected by COVID-19 pandemic.</div>
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#1a3a5c">
+      <div class="label">Total Isolates (2024)</div>
+      <div class="value" style="color:#1a3a5c">99,027</div>
+      <div class="sub">↑ from 45,930 in 2017</div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--ecoli)">
+      <div class="label">E. coli — Imipenem R</div>
+      <div class="value" style="color:var(--ecoli)">42.4%</div>
+      <div class="sub"><span class="trend-up">↑ from 18.6% (2017)</span></div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--kpneu)">
+      <div class="label">K. pneumoniae — Imipenem R</div>
+      <div class="value" style="color:var(--kpneu)">68.8%</div>
+      <div class="sub"><span class="trend-up">↑ from 41.5% (2017)</span></div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--abau)">
+      <div class="label">A. baumannii — Meropenem R</div>
+      <div class="value" style="color:var(--abau)">91.0%</div>
+      <div class="sub"><span class="trend-up">↑ from 77.3% (2017)</span></div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--paer)">
+      <div class="label">P. aeruginosa — Imipenem R</div>
+      <div class="value" style="color:var(--paer)">43.1%</div>
+      <div class="sub"><span class="trend-up">↑ from 26.4% (2017)</span></div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--mrsa)">
+      <div class="label">MRSA Rate</div>
+      <div class="value" style="color:var(--mrsa)">50.1%</div>
+      <div class="sub"><span class="trend-up">↑ from 31.9% (2017)</span></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>All Pathogens — Resistance Trend at a Glance (2017–2024)</h3>
+    <p class="chart-sub">Carbapenem resistance % for Gram-negatives · MRSA rate % for S. aureus · Click legend items to toggle</p>
+    <div class="legend" id="overview-legend"></div>
+    <div class="chart-wrap" style="height:300px"><canvas id="overviewChart"></canvas></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Annual Isolates Submitted</h3>
+      <p class="chart-sub">Total clinical isolates — yellow bar = COVID-19 year</p>
+      <div class="chart-wrap" style="height:190px"><canvas id="isolatesChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>2024 Snapshot — Resistance by Pathogen</h3>
+      <p class="chart-sub">Latest year carbapenem/MRSA resistance rates</p>
+      <div class="chart-wrap" style="height:190px"><canvas id="snapshotChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Key Highlights — 2024 Report</h3>
+    <p class="chart-sub">Critical findings from the 8th edition ICMR AMRSN Annual Report</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:6px">
+      <div style="background:#fde8e8;border-radius:8px;padding:12px 14px"><div style="font-size:0.68rem;font-weight:700;color:#c0392b;text-transform:uppercase;letter-spacing:.06em">🚨 Critical</div><div style="font-size:0.87rem;font-weight:700;margin-top:4px">A. baumannii: 91% meropenem resistant</div><div style="font-size:0.75rem;color:#555;margin-top:3px">Only colistin and minocycline retain activity. blaOXA-23 predominant.</div></div>
+      <div style="background:#fef3e2;border-radius:8px;padding:12px 14px"><div style="font-size:0.68rem;font-weight:700;color:#d35400;text-transform:uppercase;letter-spacing:.06em">⚠️ Worsening</div><div style="font-size:0.87rem;font-weight:700;margin-top:4px">K. pneumoniae: 68.8% imipenem resistant</div><div style="font-size:0.75rem;color:#555;margin-top:3px">74% also resistant to piperacillin-tazobactam. Steepest trajectory.</div></div>
+      <div style="background:#f3e8ff;border-radius:8px;padding:12px 14px"><div style="font-size:0.68rem;font-weight:700;color:#6b21a8;text-transform:uppercase;letter-spacing:.06em">📈 Milestone</div><div style="font-size:0.87rem;font-weight:700;margin-top:4px">MRSA crossed 50% of S. aureus</div><div style="font-size:0.75rem;color:#555;margin-top:3px">87% of ICU BSI S. aureus are MRSA. Vancomycin still 100% active.</div></div>
+      <div style="background:#eff6ff;border-radius:8px;padding:12px 14px"><div style="font-size:0.68rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.06em">🔬 VRE Rising</div><div style="font-size:0.87rem;font-weight:700;margin-top:4px">VRE rate reached 22% overall</div><div style="font-size:0.75rem;color:#555;margin-top:3px">E. faecium 34.2% vs E. faecalis 3.4% — 10× difference.</div></div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px"><div style="font-size:0.68rem;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.06em">✅ Last Line Active</div><div style="font-size:0.87rem;font-weight:700;margin-top:4px">Colistin resistance remains low</div><div style="font-size:0.75rem;color:#555;margin-top:3px">E. coli 0.5%, P. aeruginosa ~3%, A. baumannii 2.6% (2024).</div></div>
+      <div style="background:#fef9c3;border-radius:8px;padding:12px 14px"><div style="font-size:0.68rem;font-weight:700;color:#78350f;text-transform:uppercase;letter-spacing:.06em">⚡ Fluoroquinolones</div><div style="font-size:0.87rem;font-weight:700;margin-top:4px">E. coli ciprofloxacin R: 89.4%</div><div style="font-size:0.75rem;color:#555;margin-top:3px">Fluoroquinolones essentially unusable for E. coli empiric therapy.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BY PATHOGEN ===== -->
+<div id="tab-trends" class="tab-panel">
+  <div class="chart-card">
+    <h3>Resistance Trends by Pathogen (2017–2024)</h3>
+    <p class="chart-sub">Toggle pathogens · Hover for exact values · Hollow points = estimated/interpolated</p>
+    <div class="control-row">
+      <label>Show:</label>
+      <div class="btn-group" id="pathogen-toggle">
+        <button class="active" onclick="toggleDS(trendsChart,0,this)">E. coli</button>
+        <button class="active" onclick="toggleDS(trendsChart,1,this)">K. pneumoniae</button>
+        <button class="active" onclick="toggleDS(trendsChart,2,this)">A. baumannii</button>
+        <button class="active" onclick="toggleDS(trendsChart,3,this)">P. aeruginosa</button>
+        <button class="active" onclick="toggleDS(trendsChart,4,this)">MRSA</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:360px"><canvas id="trendsChart"></canvas></div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Gram-negative Carbapenem Resistance</h3>
+      <p class="chart-sub">E. coli, K. pneumoniae, P. aeruginosa — imipenem resistance %</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="gnChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Gram-positive: MRSA & VRE</h3>
+      <p class="chart-sub">MRSA as % of S. aureus · VRE overall % (2023–2024 only)</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="gpChart"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3>A. baumannii — Extreme Carbapenem Resistance</h3>
+    <p class="chart-sub">Already critically high at 77% in 2017 · Meropenem resistance reached 91% in 2024</p>
+    <div class="chart-wrap" style="height:190px"><canvas id="abauChart"></canvas></div>
+  </div>
+  <div class="alert alert-info">💡 <strong>2020 note:</strong> COVID-19 pandemic reduced admissions/submissions (65,561 isolates vs 107,387 in 2019). Apparent improvement in E. coli resistance likely reflects change in patient mix, not a true epidemiological shift.</div>
+</div>
+
+<!-- ===== BY ANTIBIOTIC ===== -->
+<div id="tab-antibiotics" class="tab-panel">
+  <div class="chart-card">
+    <h3>Resistance Trends by Antibiotic Class</h3>
+    <p class="chart-sub">Select an antibiotic class to see resistance (%) across pathogens over time. Lines show each pathogen; only pathogens with data for that antibiotic are shown.</p>
+    <div class="abx-btn-grid" id="abxBtnGrid"></div>
+    <div id="abxChartWrap">
+      <div class="legend" id="abx-legend"></div>
+      <div class="chart-wrap" style="height:340px"><canvas id="abxChart"></canvas></div>
+    </div>
+    <div id="abxNotes" class="alert alert-info" style="margin-top:12px;margin-bottom:0"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>2024 Resistance by Antibiotic Class — <span id="abxBarTitle">E. coli</span></h3>
+      <p class="chart-sub">Latest year resistance profile for selected pathogen</p>
+      <div class="control-row" style="margin-bottom:10px">
+        <label>Pathogen:</label>
+        <select id="abxBarPathogenSel" onchange="updateAbxBar()">
+          <option>E. coli</option>
+          <option>K. pneumoniae</option>
+          <option>A. baumannii</option>
+          <option>P. aeruginosa</option>
+          <option>S. aureus</option>
+        </select>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="abxBarChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Antibiotic Classes — 2024 vs 2017 Comparison</h3>
+      <p class="chart-sub">Change in resistance % from 2017 baseline to 2024 by antibiotic & pathogen</p>
+      <div class="chart-wrap" style="height:260px"><canvas id="deltaChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Colistin / Polymyxin — Last-Resort Antibiotic Resistance</h3>
+    <p class="chart-sub">Colistin resistance remains low across pathogens — the most critical last-line agent</p>
+    <div class="chart-wrap" style="height:190px"><canvas id="colistinChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== RESISTANCE MATRIX ===== -->
+<div id="tab-matrix" class="tab-panel">
+  <div class="chart-card">
+    <h3>Resistance Matrix — Pathogen × Antibiotic (2024)</h3>
+    <p class="chart-sub">Resistance % for each pathogen–antibiotic combination · Darker red = more resistant · Green = active last-line agent</p>
+    <div class="control-row">
+      <label>Year:</label>
+      <select id="matrixYearSel" onchange="buildMatrix()">
+        <option value="2024" selected>2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+        <option value="2020">2020</option>
+        <option value="2019">2019</option>
+        <option value="2018">2018</option>
+        <option value="2017">2017</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
+        <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem">
+          <div style="width:14px;height:14px;border-radius:3px;background:#d1fae5"></div> &lt;10% (Active)
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem">
+          <div style="width:14px;height:14px;border-radius:3px;background:#fef9c3"></div> 10–40%
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem">
+          <div style="width:14px;height:14px;border-radius:3px;background:#fde8e8"></div> 40–70%
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem">
+          <div style="width:14px;height:14px;border-radius:3px;background:#c0392b;color:#fff"></div> &gt;70%
+        </div>
+      </div>
+    </div>
+    <div class="heatmap-wrap"><table class="heatmap-table" id="matrixTable"></table></div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Resistance Matrix — Trend Over Years</h3>
+    <p class="chart-sub">Select a pathogen–antibiotic pair to see the full 2017–2024 trend</p>
+    <div class="control-row">
+      <label>Pathogen:</label>
+      <select id="matPathogen" onchange="updateMatrixTrend()">
+        <option>E. coli</option><option>K. pneumoniae</option><option>A. baumannii</option><option>P. aeruginosa</option><option>S. aureus</option>
+      </select>
+      <label style="margin-left:8px">Antibiotic:</label>
+      <select id="matAbx" onchange="updateMatrixTrend()"></select>
+    </div>
+    <div class="chart-wrap" style="height:220px"><canvas id="matrixTrendChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== PATHOGEN EXPLORER ===== -->
+<div id="tab-pathogens" class="tab-panel">
+  <p style="font-size:0.8rem;color:var(--muted);margin-bottom:12px">Click a pathogen to explore resistance trends, antibiotic profile, and clinical context.</p>
+  <div class="pathogen-grid" id="pathogenGrid"></div>
+  <div id="pathogen-detail" class="chart-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div><h3 id="detail-title">Pathogen</h3><p class="chart-sub" id="detail-subtitle"></p></div>
+      <div id="detail-badges"></div>
+    </div>
+    <div class="three-col" style="margin-top:14px">
+      <div>
+        <p style="font-size:0.75rem;font-weight:600;color:var(--muted);margin-bottom:6px">CARBAPENEM/MRSA TREND (2017–2024)</p>
+        <div class="chart-wrap" style="height:230px"><canvas id="detailChart"></canvas></div>
+      </div>
+      <div>
+        <p style="font-size:0.75rem;font-weight:600;color:var(--muted);margin-bottom:6px">2024 ANTIBIOTIC PROFILE</p>
+        <div class="chart-wrap" style="height:230px"><canvas id="detailAbxChart"></canvas></div>
+      </div>
+      <div>
+        <p style="font-size:0.75rem;font-weight:600;color:var(--muted);margin-bottom:6px">RESISTANCE RADAR (2024)</p>
+        <div class="chart-wrap" style="height:230px"><canvas id="detailRadarChart"></canvas></div>
+      </div>
+    </div>
+    <div id="detail-info" style="font-size:0.82rem;line-height:1.7;color:#374151;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"></div>
+    <div style="margin-top:14px">
+      <table><thead><tr><th>Year</th><th>Primary Resistance %</th><th>YoY Change</th><th>Notes</th></tr></thead>
+      <tbody id="detail-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BY SPECIMEN ===== -->
+<div id="tab-specimen" class="tab-panel">
+  <div class="alert alert-info">📋 Specimen-level data from ICMR AMRSN reports. Resistance rates vary significantly by specimen type and care setting (OPD vs Ward vs ICU).</div>
+
+  <div class="chart-card">
+    <h3>Pathogen Distribution by Specimen Type (2024)</h3>
+    <p class="chart-sub">% contribution of major organism groups to each specimen category</p>
+    <div class="two-col">
+      <div class="chart-wrap" style="height:260px"><canvas id="specDistChart"></canvas></div>
+      <div>
+        <div class="spec-grid" style="grid-template-columns:1fr;gap:8px">
+          <div class="spec-card">
+            <h4>🩸 Blood (BSI)</h4>
+            <div class="spec-bar-row"><span class="spec-bar-label">Enterobacterales</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:41%;background:#3b82f6"></div></div><span class="spec-bar-val" style="color:#3b82f6">41%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">NFGNB</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:22%;background:#8b5cf6"></div></div><span class="spec-bar-val" style="color:#8b5cf6">22%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">Staphylococci</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:27%;background:#10b981"></div></div><span class="spec-bar-val" style="color:#10b981">27%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">Fungi</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:6%;background:#f59e0b"></div></div><span class="spec-bar-val" style="color:#f59e0b">6%</span></div>
+          </div>
+          <div class="spec-card">
+            <h4>🧪 Urine (UTI)</h4>
+            <div class="spec-bar-row"><span class="spec-bar-label">Enterobacterales</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:82%;background:#3b82f6"></div></div><span class="spec-bar-val" style="color:#3b82f6">82%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">NFGNB</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:9%;background:#8b5cf6"></div></div><span class="spec-bar-val" style="color:#8b5cf6">9%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">Enterococci</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:9%;background:#10b981"></div></div><span class="spec-bar-val" style="color:#10b981">9%</span></div>
+          </div>
+          <div class="spec-card">
+            <h4>🫁 LRT (Pneumonia)</h4>
+            <div class="spec-bar-row"><span class="spec-bar-label">NFGNB</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:54%;background:#8b5cf6"></div></div><span class="spec-bar-val" style="color:#8b5cf6">54%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">Enterobacterales</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:36%;background:#3b82f6"></div></div><span class="spec-bar-val" style="color:#3b82f6">36%</span></div>
+            <div class="spec-bar-row"><span class="spec-bar-label">Staphylococci</span><div class="spec-bar-track"><div class="spec-bar-fill" style="width:8%;background:#10b981"></div></div><span class="spec-bar-val" style="color:#10b981">8%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>ICU vs Ward vs OPD — Carbapenem Resistance in BSIs (2022–2024)</h3>
+    <p class="chart-sub">Resistance is highest in ICU settings for all major pathogens</p>
+    <div class="chart-wrap" style="height:260px"><canvas id="icuChart"></canvas></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>BSI-Specific Resistance Rates (2024)</h3>
+      <p class="chart-sub">Pathogens causing bloodstream infections — % resistant to primary antibiotic</p>
+      <div class="chart-wrap" style="height:220px"><canvas id="bsiChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>CAUTI / CLABSI — AMR Burden</h3>
+      <p class="chart-sub">Healthcare-associated infection pathogens and their resistance profiles (2022–2024)</p>
+      <div id="haiInfo" style="font-size:0.82rem;line-height:1.8;padding:8px 0">
+        <p><strong>CAUTI (Catheter-associated UTI):</strong><br>
+        E. coli and K. pneumoniae predominate. In ICU CAUTIs, carbapenem resistance: K. pneumoniae ~75%, E. coli ~45%.</p>
+        <br>
+        <p><strong>CLABSI (Central-line BSI):</strong><br>
+        Staphylococci (27%), Enterobacterales (38%), NFGNB (22%). MRSA in CLABSI: 87% of S. aureus isolates in ICUs (2022).</p>
+        <br>
+        <p><strong>VAP (Ventilator-associated pneumonia):</strong><br>
+        A. baumannii and P. aeruginosa dominant (>60% of LRT isolates in ICUs). Carbapenem resistance in ICU LRT: A. baumannii &gt;90%, P. aeruginosa ~45%.</p>
+        <br>
+        <p><strong>SSI (Surgical site infection):</strong><br>
+        Gram-negatives account for 76% of SSIs — higher than historical assumptions. E. coli (ESBL-producing) is leading SSI pathogen.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPECIAL PATHOGENS ===== -->
+<div id="tab-special" class="tab-panel">
+  <div class="alert alert-info">🦠 Data from ICMR AMRSN Typhoidal Salmonella, Diarrheal, S. pneumoniae and Enterococcus chapters. All figures from annual report summaries and tables (2017–2024).</div>
+
+  <!-- Typhoidal Salmonella -->
+  <div class="chart-card">
+    <h3>Typhoidal Salmonella — Antimicrobial Resistance Trends</h3>
+    <p class="chart-sub">S. Typhi and S. Paratyphi · Fluoroquinolone non-susceptibility essentially universal · Ceftriaxone remains active</p>
+    <div class="two-col">
+      <div>
+        <div class="chart-wrap" style="height:240px"><canvas id="typhiTrendChart"></canvas></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start">
+        <div class="stat-card" style="border-left-color:#e74c3c">
+          <div class="label">Cipro Non-susceptible (2024)</div>
+          <div class="value" style="color:#e74c3c;font-size:1.5rem">98.7%</div>
+          <div class="sub">MIC90 reached 128 µg/ml by 2024</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#27ae60">
+          <div class="label">Ceftriaxone Active (2024)</div>
+          <div class="value" style="color:#27ae60;font-size:1.5rem">&gt;99%</div>
+          <div class="sub">Rare resistant isolates detected (MIC 32 µg/ml)</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#2980b9">
+          <div class="label">Azithromycin Active (2024)</div>
+          <div class="value" style="color:#2980b9;font-size:1.5rem">~95%</div>
+          <div class="sub">Heteroresistance detected; MICs reverting on subculture</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#f59e0b">
+          <div class="label">MDR Typhi (2021)</div>
+          <div class="value" style="color:#f59e0b;font-size:1.5rem">~4%</div>
+          <div class="sub">Amp + Chlor + Cotrimoxazole all resistant; declining nationally</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#8e44ad;grid-column:span 2">
+          <div class="label">Ciprofloxacin MIC90 Escalation</div>
+          <div class="value" style="color:#8e44ad;font-size:1.3rem">8 → 128 µg/ml</div>
+          <div class="sub">2016 baseline → 2024: a 16-fold increase in MIC90. Clinical failure at MIC ≥0.25 µg/ml (CLSI breakpoint). gyrA S83F mutation in &gt;90% of FQ-R isolates.</div>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-warn" style="margin-top:10px;margin-bottom:0">⚠️ XDR S. Typhi (resistant to all first-line + fluoroquinolones + ceftriaxone) remains rare in India but is an imminent threat given outbreaks in Pakistan and South Asia. Ongoing molecular surveillance is critical.</div>
+  </div>
+
+  <!-- Diarrheal pathogens -->
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Shigella — Resistance Trends</h3>
+      <p class="chart-sub">S. flexneri (dominant) vs S. sonnei · Ciprofloxacin essentially unusable for Shigella</p>
+      <div class="legend" id="shigella-legend"></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="shigellaChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>V. cholerae — Antibiotic Susceptibility</h3>
+      <p class="chart-sub">% susceptible · Tetracycline gold standard · TMP-SMX declining · Ampicillin variable</p>
+      <div class="chart-wrap" style="height:220px"><canvas id="vibCholeraChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- S. pneumoniae -->
+  <div class="chart-card">
+    <h3>Streptococcus pneumoniae — Resistance Profile (2021–2024)</h3>
+    <p class="chart-sub">Penicillin meningeal resistance very high · Vancomycin + Linezolid fully active · Macrolide resistance rising</p>
+    <div class="two-col">
+      <div class="chart-wrap" style="height:220px"><canvas id="streppneuChart"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start">
+        <div class="stat-card" style="border-left-color:#c0392b">
+          <div class="label">Penicillin R (Meningeal, 2024)</div>
+          <div class="value" style="color:#c0392b;font-size:1.4rem">~76%</div>
+          <div class="sub">Non-meningeal breakpoint: ~30% R</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#e67e22">
+          <div class="label">Erythromycin R (2024)</div>
+          <div class="value" style="color:#e67e22;font-size:1.4rem">79%</div>
+          <div class="sub">Invasive isolates; 57% in non-invasive</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#27ae60">
+          <div class="label">Vancomycin (2024)</div>
+          <div class="value" style="color:#27ae60;font-size:1.4rem">0%</div>
+          <div class="sub">100% susceptible — fully preserved all years</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#2980b9">
+          <div class="label">Levofloxacin R (2024)</div>
+          <div class="value" style="color:#2980b9;font-size:1.4rem">~8%</div>
+          <div class="sub">&gt;90% susceptible — preferred empiric option</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VRE / Enterococcus -->
+  <div class="chart-card">
+    <h3>Enterococcus — VRE & Resistance Trends (2017–2024)</h3>
+    <p class="chart-sub">E. faecium VRE rate rising steeply · Ampicillin resistance in E. faecium essentially universal · Linezolid resistance emerging</p>
+    <div class="three-col">
+      <div>
+        <p style="font-size:0.75rem;font-weight:600;color:var(--muted);margin-bottom:6px">VRE % TREND</p>
+        <div class="chart-wrap" style="height:200px"><canvas id="vreTrendChart"></canvas></div>
+      </div>
+      <div>
+        <p style="font-size:0.75rem;font-weight:600;color:var(--muted);margin-bottom:6px">E. FAECIUM RESISTANCE PROFILE (2024)</p>
+        <div class="chart-wrap" style="height:200px"><canvas id="enteroProfileChart"></canvas></div>
+      </div>
+      <div>
+        <p style="font-size:0.75rem;font-weight:600;color:var(--muted);margin-bottom:6px">VRE BY CARE SETTING (2024)</p>
+        <div class="chart-wrap" style="height:200px"><canvas id="vreSettingChart"></canvas></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:12px">
+      <div style="background:#fde8e8;border-radius:8px;padding:10px 12px;font-size:0.78rem"><strong style="color:#c0392b">E. faecium VRE: 34.2% (2024)</strong><br>Up from 23.7% in 2017. VRE in E. faecium BSI in ICUs: ~42–49%.</div>
+      <div style="background:#fef9c3;border-radius:8px;padding:10px 12px;font-size:0.78rem"><strong style="color:#78350f">Ampicillin R in E. faecium: 88%</strong><br>Essentially universal resistance. Ampicillin cannot be used for E. faecium infections.</div>
+      <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;font-size:0.78rem"><strong style="color:#1e3a5f">Linezolid R emerging: 9.1% (2024)</strong><br>Previously near zero. Rising linezolid resistance in E. faecium is a critical concern limiting last-resort options.</div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;font-size:0.78rem"><strong style="color:#065f46">E. faecalis VRE: 3.4% (2024)</strong><br>10× lower than E. faecium. E. faecalis remains more susceptible; ampicillin still useful.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MOLECULAR RESISTANCE ===== -->
+<div id="tab-molecular" class="tab-panel">
+  <div class="alert alert-info">🧬 Molecular mechanism data from ICMR AMRSN Enterobacterales, NFGNB, and MRSA chapters. Percentages reflect distribution among resistant isolates tested by PCR/WGS across the network. Values represent national averages — significant centre-to-centre variation exists.</div>
+
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#e67e22">
+      <div class="label">NDM in CRKp (K. pneumoniae)</div>
+      <div class="value" style="color:#e67e22">~65%</div>
+      <div class="sub">Up to 93% at individual centres · Dominant MBL</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#8e44ad">
+      <div class="label">OXA-23 in CR-Abau</div>
+      <div class="value" style="color:#8e44ad">&gt;75%</div>
+      <div class="sub">Most CR-Acinetobacter · OXA-23+NDM co-carriage: 38.6% (2024)</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e74c3c">
+      <div class="label">CTX-M-15 in ESBL E. coli</div>
+      <div class="value" style="color:#e74c3c">~75%</div>
+      <div class="sub">Dominant ESBL gene · CTX-M-27 emerging at ~10%</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#2980b9">
+      <div class="label">NDM in CR-Pseudomonas</div>
+      <div class="value" style="color:#2980b9">~55%</div>
+      <div class="sub">Overtaking VIM as dominant MBL since 2022</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#27ae60">
+      <div class="label">gyrA S83F in FQ-R Typhi</div>
+      <div class="value" style="color:#27ae60">&gt;90%</div>
+      <div class="sub">Triple mutation drives high-level CIP R (MIC 6–256 µg/ml)</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#16a085">
+      <div class="label">mcr Gene (Colistin R)</div>
+      <div class="value" style="color:#16a085">&lt;2%</div>
+      <div class="sub">Plasmid-mediated colistin R remains very low nationally</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>K. pneumoniae — Carbapenemase Gene Distribution</h3>
+      <p class="chart-sub">Distribution among carbapenem-resistant K. pneumoniae isolates tested by PCR/WGS</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="kpneuCarbGeneChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>A. baumannii — Carbapenem Resistance Mechanisms</h3>
+      <p class="chart-sub">OXA-23 dominant; NDM co-carriage emerging as major threat (2024)</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="abauMechChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>E. coli — ESBL Gene Type Distribution</h3>
+      <p class="chart-sub">Among ESBL-producing E. coli · CTX-M-15 overwhelmingly dominant</p>
+      <div class="chart-wrap" style="height:210px"><canvas id="ecoliESBLChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>P. aeruginosa — MBL Gene Shift Over Time</h3>
+      <p class="chart-sub">NDM overtaking VIM as dominant metallo-β-lactamase since 2022</p>
+      <div class="chart-wrap" style="height:210px"><canvas id="paerMBLChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>S. Typhi — Fluoroquinolone Resistance Mutation Cascade</h3>
+    <p class="chart-sub">Progressive gyrA/parC mutations correlating with ciprofloxacin MIC escalation (2017–2024)</p>
+    <div class="two-col">
+      <div class="chart-wrap" style="height:220px"><canvas id="typhiMICChart"></canvas></div>
+      <div style="font-size:0.82rem;line-height:1.8;padding:8px 0">
+        <strong>Mutation cascade driving CIP resistance in S. Typhi:</strong><br>
+        <div style="margin-top:8px;display:grid;gap:6px">
+          <div style="background:#fef9c3;padding:8px 10px;border-radius:6px;font-size:0.78rem"><strong>Step 1:</strong> Single gyrA S83F → MIC 0.12–1 µg/ml (low-level, still treatable)</div>
+          <div style="background:#fed7aa;padding:8px 10px;border-radius:6px;font-size:0.78rem"><strong>Step 2:</strong> gyrA S83F + D87N → MIC 1–4 µg/ml (intermediate resistance)</div>
+          <div style="background:#fca5a5;padding:8px 10px;border-radius:6px;font-size:0.78rem"><strong>Step 3:</strong> + parC S80I → MIC 6–32 µg/ml (clinical failure)</div>
+          <div style="background:#c0392b;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#fff"><strong>Step 4:</strong> + PMQR genes → MIC 32–256 µg/ml (high-level, untreatable by FQ)</div>
+          <div style="margin-top:4px;font-size:0.76rem;color:#6b7280">By 2024: MIC90 = 128 µg/ml. &gt;90% of FQ-R isolates carry gyrA S83F as primary mutation.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>MRSA Resistance Mechanisms & Treatment Options</h3>
+    <p class="chart-sub">mecA/mecC gene mediated oxacillin resistance · Linezolid resistance emerging in E. faecium · Vancomycin remains fully active in S. aureus</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:6px">
+      <div style="background:#fde8e8;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#c0392b;text-transform:uppercase">mecA Gene</div>
+        <div style="font-size:0.9rem;font-weight:700;margin-top:3px">Universal in MRSA isolates</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">Encodes PBP2a (penicillin-binding protein 2a) with low affinity for all β-lactams. SCCmec types II, III, IV predominant in India.</div>
+      </div>
+      <div style="background:#fef9c3;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#78350f;text-transform:uppercase">Vancomycin — Fully Preserved</div>
+        <div style="font-size:0.9rem;font-weight:700;margin-top:3px">VRSA: 0% — never detected</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">No vancomycin-resistant S. aureus (VRSA) reported in the entire 8-year ICMR AMRSN network. Vancomycin MIC creep monitored but not clinically significant.</div>
+      </div>
+      <div style="background:#eff6ff;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#1e3a5f;text-transform:uppercase">Linezolid Resistance — Emerging</div>
+        <div style="font-size:0.9rem;font-weight:700;margin-top:3px">~3.4% linezolid R in MRSA (2024)</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">23S rRNA mutations and cfr gene. Rising from near-zero baseline. In E. faecium: 9.1% linezolid resistant (2024). Threatens the last reliable oral option for MRSA.</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#065f46;text-transform:uppercase">colistin mcr Gene</div>
+        <div style="font-size:0.9rem;font-weight:700;margin-top:3px">mcr-1 prevalence: &lt;2%</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">Plasmid-mediated colistin resistance (mcr-1, mcr-3) detected but at very low prevalence. Intrinsic chromosomal mechanisms also contribute. K. pneumoniae colistin R fell from 13% (2017) to 4% (2024).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HAI & BSI ===== -->
+<div id="tab-hai" class="tab-panel">
+  <div class="alert alert-info">🏥 Healthcare-Associated Infection (HAI) surveillance data from ICMR AMRSN HAI chapters (2021–2024). BSI-specific resistance rates differ from overall isolate data — BSI isolates typically show higher resistance due to selection pressure in severely ill patients.</div>
+
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#c0392b">
+      <div class="label">BSI Mortality (2024)</div>
+      <div class="value" style="color:#c0392b">36.6%</div>
+      <div class="sub">↓ from 44.3% peak in 2022 · AMR drives attributable mortality</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e67e22">
+      <div class="label">CLABSI Rate (2024)</div>
+      <div class="value" style="color:#e67e22">7.70</div>
+      <div class="sub">Per 1,000 catheter-line-days · Rising from 3.10 in 2021</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#2980b9">
+      <div class="label">CAUTI Rate (2024)</div>
+      <div class="value" style="color:#2980b9">3.30</div>
+      <div class="sub">Per 1,000 urinary catheter-days</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#8e44ad">
+      <div class="label">VAP Rate (2024)</div>
+      <div class="value" style="color:#8e44ad">7.6</div>
+      <div class="sub">Per 1,000 ventilator-days · A. baumannii dominant (43.6%)</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#27ae60">
+      <div class="label">BSI Rate (2024)</div>
+      <div class="value" style="color:#27ae60">4.90</div>
+      <div class="sub">Per 1,000 patient-days · Down from 6.51 in 2021</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#f59e0b">
+      <div class="label">Kp BSI Imipenem R (2024)</div>
+      <div class="value" style="color:#f59e0b">77.6%</div>
+      <div class="sub">BSI-specific — higher than overall 68.8% · Tigecycline: 79.3% active</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>HAI Rates Trend (2021–2024)</h3>
+      <p class="chart-sub">CLABSI, CAUTI, VAP and overall BSI rates per 1,000 device-days or patient-days</p>
+      <div class="legend" id="hai-legend"></div>
+      <div class="chart-wrap" style="height:230px"><canvas id="haiRatesChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>BSI Mortality & Volume (2021–2024)</h3>
+      <p class="chart-sub">Case fatality rate in BSI patients · AMR burden drives attributable mortality</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="bsiMortalityChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>BSI-Specific vs Overall Resistance — Key Pathogens (2024)</h3>
+    <p class="chart-sub">BSI isolates show higher resistance than overall isolate pool — reflects severity-of-illness selection and ICU exposure. Tigecycline included as it is active in BSI where carbapenems fail.</p>
+    <div class="chart-wrap" style="height:260px"><canvas id="bsiVsOverallChart"></canvas></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>VAP Organisms Distribution (2023–2024)</h3>
+      <p class="chart-sub">A. baumannii dominates ICU pneumonia — essentially pan-resistant in this setting</p>
+      <div class="chart-wrap" style="height:210px"><canvas id="vapOrgsChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Tigecycline — BSI Activity vs Carbapenems (2024)</h3>
+      <p class="chart-sub">Tigecycline retains meaningful activity where carbapenems have failed · Not for BSI monotherapy but used in combinations</p>
+      <div class="chart-wrap" style="height:210px"><canvas id="tigeChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>HAI Type by Pathogen — Organism-Syndrome Matrix (2024)</h3>
+    <p class="chart-sub">Which pathogens dominate each HAI syndrome</p>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>HAI Type</th><th>Rate (2024)</th><th>Predominant Pathogen(s)</th><th>Key Resistance</th><th>Mortality</th></tr></thead>
+        <tbody>
+          <tr><td><strong>CLABSI</strong> (Central-line BSI)</td><td>7.70/1000 CLD</td><td>Klebsiella (38%), Acinetobacter (22%), Staphylococci (27%)</td><td><span class="badge badge-red">Kp: 77.6% imipenem R</span> <span class="badge badge-red">MRSA: 87% of S. aureus</span></td><td>36–44%</td></tr>
+          <tr><td><strong>CAUTI</strong> (Catheter-associated UTI)</td><td>3.30/1000 UCD</td><td>E. coli (52%), Klebsiella (28%), Enterococcus (10%)</td><td><span class="badge badge-orange">E. coli: ~45% imipenem R in ICU CAUTI</span> <span class="badge badge-orange">VRE: 44% E. faecium in ICU</span></td><td>Lower</td></tr>
+          <tr><td><strong>VAP</strong> (Ventilator-associated pneumonia)</td><td>7.6/1000 vent-days</td><td>Acinetobacter (43.6%), Klebsiella (17.7%), Pseudomonas (17.5%)</td><td><span class="badge badge-red">A. baumannii: &gt;95% carbapenem R in ICU VAP</span></td><td>High (VAP specific)</td></tr>
+          <tr><td><strong>SSI</strong> (Surgical site infection)</td><td>Varies</td><td>Gram-negatives 76% (E. coli dominant), S. aureus</td><td><span class="badge badge-orange">E. coli ESBL: ~84% cefotaxime R</span> <span class="badge badge-orange">MRSA: 50%</span></td><td>Lower</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CARE SETTING ===== -->
+<div id="tab-setting" class="tab-panel">
+  <div class="alert alert-info">⚙️ Care-setting analysis: OPD vs Ward vs ICU resistance gradient. Data extracted from ICMR AMRSN specimen-stratified tables. ICU isolates consistently show highest resistance reflecting selection pressure, sicker patients, and greater prior antibiotic exposure.</div>
+
+  <div class="chart-card">
+    <h3>OPD → Ward → ICU Resistance Gradient (2024)</h3>
+    <p class="chart-sub">Dramatic resistance escalation from community to ICU setting — for each pathogen-antibiotic pair · Carbapenem resistance in ICU A. baumannii approaches 94%</p>
+    <div class="chart-wrap" style="height:320px"><canvas id="settingGradientChart"></canvas></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Gram-negative — ICU vs OPD Carbapenem Resistance</h3>
+      <p class="chart-sub">ICU/OPD ratio shows how much more dangerous ICU infections are</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="icuOpdRatioChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>VRE by Care Setting (E. faecium, 2024)</h3>
+      <p class="chart-sub">Vancomycin resistance in E. faecium: 22.4% OPD → 25.2% Ward → 44.3% ICU</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="vreSettingBarChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Setting × Pathogen × Antibiotic Heatmap (2024)</h3>
+    <p class="chart-sub">Resistance % by care setting — select year or setting for comparison</p>
+    <div class="heatmap-wrap"><table class="heatmap-table" id="settingMatrix"></table></div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Why ICU Resistance Is So Much Higher — Key Drivers</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:6px">
+      <div style="background:#fde8e8;border-radius:8px;padding:12px 14px;font-size:0.79rem"><strong style="color:#c0392b">🔬 Prior Antibiotic Exposure</strong><br><br>ICU patients typically arrive after failed community treatment — selecting for resistant organisms already. Multiple prior courses of carbapenems, cephalosporins create selective pressure.</div>
+      <div style="background:#fef3e2;border-radius:8px;padding:12px 14px;font-size:0.79rem"><strong style="color:#d35400">🏥 Cross-Transmission</strong><br><br>ICU environments concentrate resistant organisms. Medical devices (ventilators, central lines, urinary catheters) act as reservoirs. A. baumannii persists on surfaces for weeks.</div>
+      <div style="background:#eff6ff;border-radius:8px;padding:12px 14px;font-size:0.79rem"><strong style="color:#1e3a5f">🛡️ Compromised Immunity</strong><br><br>ICU patients have impaired immune defences (surgery, trauma, organ failure, immunosuppression) — allowing colonisation by resistant organisms that OPD patients would clear.</div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px;font-size:0.79rem"><strong style="color:#065f46">📊 Selection Bias</strong><br><br>ICU specimens are more likely to be from patients already failing therapy — so resistant organisms are disproportionately cultured. OPD isolates include many first-presentation patients.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VELOCITY & FORECAST ===== -->
+<div id="tab-velocity" class="tab-panel">
+  <div class="alert alert-warn">⚠️ Projections are simple linear extrapolations for illustrative purposes only. Actual resistance trajectories depend on stewardship interventions, vaccine rollout, surveillance network changes, and epidemiological dynamics. Do not use for policy decisions without further modelling.</div>
+
+  <div class="chart-card">
+    <h3>Resistance Velocity — Year-on-Year Change (2018–2024)</h3>
+    <p class="chart-sub">Percentage-point change per year · Positive = worsening · Note 2020 COVID anomaly (negative values = apparent improvement due to patient mix, not real)</p>
+    <div class="legend" id="velocity-legend"></div>
+    <div class="chart-wrap" style="height:300px"><canvas id="velocityChart"></canvas></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Cumulative Resistance Gained Since 2017</h3>
+      <p class="chart-sub">Absolute percentage-point increase from 2017 baseline — a measure of how much ground has been lost</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="cumulativeChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Linear Projection to 2027</h3>
+      <p class="chart-sub">Extrapolating 2017–2024 trend · Dashed = projected · Assumes no major intervention · For illustration only</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="forecastChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Resistance Acceleration Leaderboard — Fastest Eroding Antibiotics (2017→2024)</h3>
+    <p class="chart-sub">Ranked by absolute resistance increase (percentage points) over 8 years of surveillance</p>
+    <div id="velocityLeaderboard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin-top:8px"></div>
+  </div>
+
+  <div class="chart-card">
+    <h3>If Current Trends Continue — Projected Resistance by 2030</h3>
+    <p class="chart-sub">Simple linear projection · These figures represent the path we are on if no intervention occurs</p>
+    <div style="overflow-x:auto">
+      <table id="forecastTable">
+        <thead><tr><th>Pathogen / Antibiotic</th><th>2017 Baseline</th><th>2024 Current</th><th>8-yr Change</th><th>Rate/Year</th><th>2027 (proj.)</th><th>2030 (proj.)</th></tr></thead>
+        <tbody id="forecastTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SITE EXPLORER ===== -->
+<div id="tab-sites" class="tab-panel">
+
+  <div class="alert alert-info">📍 <strong>Data note:</strong> Surveillance tables use anonymized RC codes (RC1–RC21) — the RC-to-hospital mapping is not disclosed in published ICMR AMRSN reports. Named institution data comes from molecular characterization tables (2022) where isolates were sent for PCR/WGS analysis. These represent <em>characterized</em> subsets, not all isolates. National network has grown from 8 centres (2017) to 21 centres (2022+).</div>
+
+  <!-- Map + site selector -->
+  <div class="two-col" style="align-items:start">
+    <div class="chart-card" style="margin-bottom:0">
+      <h3>ICMR AMRSN Network — Geographic Distribution</h3>
+      <p class="chart-sub">All 20 participating institutions · Bubble size = relative isolate contribution · Click a dot to explore</p>
+      <div class="map-canvas-wrap" style="height:460px"><canvas id="siteMapChart"></canvas></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:0.72rem">
+        <span><span class="region-badge reg-north">North</span></span>
+        <span><span class="region-badge reg-south">South</span></span>
+        <span><span class="region-badge reg-east">East</span></span>
+        <span><span class="region-badge reg-west">West</span></span>
+        <span><span class="region-badge reg-central">Central</span></span>
+        <span><span class="region-badge reg-northeast">Northeast</span></span>
+      </div>
+    </div>
+    <div>
+      <div class="chart-card" id="siteDetailCard" style="margin-bottom:14px">
+        <h3 id="siteDetailName" style="color:var(--primary)">Select a site</h3>
+        <p class="chart-sub" id="siteDetailSub">Click a bubble on the map or a site pill below to explore</p>
+        <div id="siteDetailBody" style="font-size:0.82rem;line-height:1.8;color:#374151">
+          <p style="color:var(--muted);font-style:italic">Choose any ICMR AMRSN network site to see its location, role, available resistance data, and contribution to national surveillance.</p>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <h3>Network Sites</h3>
+        <p class="chart-sub">All 20 named centres</p>
+        <div class="site-dot-grid" id="sitePillGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cross-site resistance comparison -->
+  <div class="chart-card">
+    <h3>Site-by-Site Carbapenem Resistance Comparison (2022 Molecular Data)</h3>
+    <p class="chart-sub">From molecular characterization tables — isolates revived and PCR-tested. Bars show % carbapenem-resistant among characterized isolates. <em>Note: these are subsets sent for molecular work; proportions may be enriched for resistant isolates.</em></p>
+    <div class="control-row">
+      <label>Pathogen:</label>
+      <div class="btn-group">
+        <button class="active" id="siteAbauBtn" onclick="switchSiteChart('abau',this)">A. baumannii</button>
+        <button id="sitePaerBtn" onclick="switchSiteChart('paer',this)">P. aeruginosa</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:340px"><canvas id="siteResistanceChart"></canvas></div>
+  </div>
+
+  <!-- RC-coded isolate & MRSA data -->
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>MRSA Rate by Network Site (2022) — Anonymized RC Codes</h3>
+      <p class="chart-sub">MRSA as % of S. aureus isolates per surveillance site · RC number → hospital name mapping not published · Wide variation: RC18 = 86%, RC4 = 24%</p>
+      <div class="chart-wrap" style="height:300px"><canvas id="rcMrsaChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Isolate Volume by Network Site (2022) — Anonymized RCs</h3>
+      <p class="chart-sub">Total clinical isolates submitted by each RC · Top 3 sites contribute ~35% of national total</p>
+      <div class="chart-wrap" style="height:300px"><canvas id="rcIsolatesChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Network growth -->
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Network Growth — Active Sites & Isolates Over Time</h3>
+      <p class="chart-sub">ICMR AMRSN expanded from 8 nodal/regional centres (2017) to 21 sites (2022+) with 99,000+ annual isolates</p>
+      <div class="chart-wrap" style="height:220px"><canvas id="networkGrowthChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>A. baumannii Carbapenem Resistance — North vs South vs East vs West (2022)</h3>
+      <p class="chart-sub">Regional aggregate of CR% from named molecular data sites · North = AIIMS, PGIMER, SGRH, KGMU, SKIMS</p>
+      <div class="chart-wrap" style="height:220px"><canvas id="regionalAbauChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Full network table -->
+  <div class="chart-card">
+    <h3>Complete ICMR AMRSN Network Directory</h3>
+    <p class="chart-sub">All participating institutions · Role · Available resistance data · 2022 molecular characterization results</p>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Institution</th><th>City</th><th>State</th><th>Region</th><th>Role</th><th>A.bau CR% (2022)</th><th>P.aer CR% (2022)</th><th>Molecular n</th></tr>
+        </thead>
+        <tbody id="siteTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FUNGAL AMR ===== -->
+<div id="tab-fungal" class="tab-panel">
+  <div class="alert alert-info">🧫 Fungal AMR data from ICMR AMRSN Fungal chapters (2017–2024). Year-by-year resistance values are estimated from trend descriptions in report summaries; exact per-year figures not published as aggregates. C. auris data from 2020 onwards.</div>
+
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#f59e0b">
+      <div class="label">C. tropicalis — Fluconazole R</div>
+      <div class="value" style="color:#f59e0b">~60%</div>
+      <div class="sub">2024 est. · Most common yeast in India</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#ef4444">
+      <div class="label">C. auris — Fluconazole R</div>
+      <div class="value" style="color:#ef4444">&gt;90%</div>
+      <div class="sub">Multi-drug resistant · Emerging nosocomial pathogen</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#8b5cf6">
+      <div class="label">C. glabrata — Fluconazole R</div>
+      <div class="value" style="color:#8b5cf6">~30%</div>
+      <div class="sub">2024 est. · Intrinsic azole resistance</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#10b981">
+      <div class="label">C. albicans — Fluconazole R</div>
+      <div class="value" style="color:#10b981">~10%</div>
+      <div class="sub">2024 est. · Relatively preserved</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#c0392b">
+      <div class="label">C. tropicalis — Caspofungin R</div>
+      <div class="value" style="color:#c0392b">~25%</div>
+      <div class="sub">2024 est. · Limits treatment of azole-resistant candidemia</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#6366f1">
+      <div class="label">Aspergillus flavus</div>
+      <div class="value" style="color:#6366f1">Most common</div>
+      <div class="sub">Predominant mold · India differs from global (A. fumigatus global)</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Candida Species Distribution (2024)</h3>
+      <p class="chart-sub">Estimated relative frequency of Candida species from clinical specimens across ICMR network</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="candDistChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Fluconazole Resistance Trend by Candida Species</h3>
+      <p class="chart-sub">Estimated % resistant to fluconazole over time · Hollow points = earlier estimates</p>
+      <div class="legend" id="fungal-legend"></div>
+      <div class="chart-wrap" style="height:185px"><canvas id="fungalTrendChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Echinocandin (Caspofungin) Resistance</h3>
+      <p class="chart-sub">Caspofungin resistance increasing in C. tropicalis — limits treatment for azole-resistant candidemia</p>
+      <div class="chart-wrap" style="height:200px"><canvas id="caspoChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>2024 — Antifungal Resistance Summary</h3>
+      <p class="chart-sub">Resistance % by Candida species and antifungal drug</p>
+      <div class="chart-wrap" style="height:200px"><canvas id="antifungalBarChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Key Fungal AMR Findings from ICMR AMRSN Reports</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:6px">
+      <div style="background:#fef9c3;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#78350f;text-transform:uppercase">🍄 C. tropicalis Dominance</div>
+        <div style="font-size:0.85rem;font-weight:700;margin-top:4px">India differs from global pattern</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">C. tropicalis is the most common yeast in India (vs C. albicans globally). It carries higher virulence and higher azole resistance. Increasing caspofungin resistance further limits options.</div>
+      </div>
+      <div style="background:#fde8e8;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#c0392b;text-transform:uppercase">🚨 C. auris Emergence</div>
+        <div style="font-size:0.85rem;font-weight:700;margin-top:4px">Multi-drug resistant nosocomial pathogen</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">C. auris causes nosocomial outbreaks, environmentally persistent, >90% fluconazole resistant. Some isolates resistant to all 3 antifungal classes. ICMR network tracking since ~2019.</div>
+      </div>
+      <div style="background:#eff6ff;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#1e3a5f;text-transform:uppercase">📈 Echinocandin Pressure</div>
+        <div style="font-size:0.85rem;font-weight:700;margin-top:4px">Caspofungin resistance rising in C. tropicalis</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">ICMR 2017 report flagged increasing caspofungin resistance in C. tropicalis as a "serious concern." FKS gene mutations drive resistance. Limits salvage therapy for azole-resistant candidemia.</div>
+      </div>
+      <div style="background:#f3e8ff;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#6b21a8;text-transform:uppercase">🦠 Wickerhamomyces Emerging</div>
+        <div style="font-size:0.85rem;font-weight:700;margin-top:4px">Recognized in pediatric patients (2017)</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">Wickerhamomyces anomalous (13.1% of yeast in pediatric specimens, 2017) is an emerging uncommon pathogen with variable antifungal susceptibility.</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#065f46;text-transform:uppercase">🌿 Aspergillus flavus</div>
+        <div style="font-size:0.85rem;font-weight:700;margin-top:4px">Most common mold — India-specific pattern</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">A. flavus is most common mold in India (vs A. fumigatus globally). Mucormycosis surged post-COVID (2021–22 CAM wave). Voriconazole azole resistance in Aspergillus remains low but monitored.</div>
+      </div>
+      <div style="background:#fef3e2;border-radius:8px;padding:12px 14px">
+        <div style="font-size:0.68rem;font-weight:700;color:#d35400;text-transform:uppercase">💊 Treatment Implications</div>
+        <div style="font-size:0.85rem;font-weight:700;margin-top:4px">Empiric fluconazole unreliable for candidemia</div>
+        <div style="font-size:0.75rem;color:#555;margin-top:3px">Given >60% fluconazole resistance in C. tropicalis (dominant species), empiric echinocandins are preferred for candidemia in India. C. albicans remains relatively susceptible to fluconazole.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STEWARDSHIP ===== -->
+<div id="tab-stewardship" class="tab-panel">
+  <div class="alert alert-warn">⚠️ This section is derived from 2024 ICMR AMRSN resistance data for <strong>exploratory and educational purposes only</strong>. It is NOT clinical advice. Always use local antibiograms and consult infectious disease/microbiology specialists for patient care decisions.</div>
+
+  <div class="chart-card">
+    <h3>Empiric Antibiotic Usefulness Scorecard — 2024</h3>
+    <p class="chart-sub">Based on resistance % in ICMR tertiary-care network · 🟢 Likely active (&lt;20%) · 🟡 Caution (20–50%) · 🟠 Avoid empirically (50–75%) · 🔴 Essentially inactive (&gt;75%)</p>
+    <div id="scorecardGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:10px"></div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Infection Syndrome Guidance — Resistance-Informed (2024)</h3>
+    <p class="chart-sub">Which antibiotics retain activity by infection type based on ICMR AMRSN 2024 data? For educational reference only.</p>
+    <div id="syndromeGuide" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:6px"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>E. coli & K. pneumoniae — Antibiotic Usability (2024)</h3>
+      <p class="chart-sub">Side-by-side resistance % — higher = less reliable for empiric use</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="usabilityChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Last-Resort Antibiotics — Resistance (2024)</h3>
+      <p class="chart-sub">Colistin, Vancomycin, Linezolid, Minocycline — the final line of defence</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="lastResortChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Resistance Increase 2017 → 2024 — Which Antibiotics Have We Lost?</h3>
+    <p class="chart-sub">Absolute percentage-point increase in resistance over 8 years of surveillance — sorted by magnitude of loss</p>
+    <div class="chart-wrap" style="height:260px"><canvas id="lostAbxChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== DATA TABLE ===== -->
+<div id="tab-data" class="tab-panel">
+  <div class="chart-card" style="padding-bottom:8px">
+    <h3>Full Resistance Data — All Pathogens, All Antibiotics, All Years</h3>
+    <p class="chart-sub">Source: ICMR AMRSN Annual Reports 2017–2024 · R% = resistance percentage · est = estimated/interpolated</p>
+    <div class="control-row" style="margin-top:12px">
+      <label>Pathogen:</label>
+      <select id="tablePathogen" onchange="filterTable()">
+        <option value="all">All</option>
+        <option>E. coli</option><option>K. pneumoniae</option><option>A. baumannii</option><option>P. aeruginosa</option><option>S. aureus</option>
+      </select>
+      <label>Antibiotic:</label>
+      <select id="tableAbx" onchange="filterTable()">
+        <option value="all">All</option>
+      </select>
+      <label>Year:</label>
+      <select id="tableYear" onchange="filterTable()">
+        <option value="all">All years</option>
+        <option>2017</option><option>2018</option><option>2019</option><option>2020</option>
+        <option>2021</option><option>2022</option><option>2023</option><option>2024</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto;margin-top:8px">
+      <table>
+        <thead><tr><th>Year</th><th>Pathogen</th><th>Antibiotic</th><th>Resistance %</th><th>YoY Δ</th><th>Source</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ABOUT ===== -->
+<div id="tab-about" class="tab-panel">
+  <div class="about-section">
+    <h2>About This Dashboard</h2>
+    <p>This dashboard visualizes 8 years of antimicrobial resistance surveillance data from the <strong>ICMR Antimicrobial Resistance Research and Surveillance Network (AMRSN)</strong>. Data were extracted from the annual reports published for years 2017 through 2024.</p>
+    <h3>Data Sources</h3>
+    <ul>
+      <li>ICMR AMRSN Annual Reports 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024 (8th Edition)</li>
+      <li>Primary source: Chapter 1 summary tables and yearly trend tables in each report</li>
+      <li>Multi-year trend tables cross-verified from 2023 and 2024 reports (which contain cumulative trend data)</li>
+    </ul>
+    <h3>Antibiotic Classes Tracked</h3>
+    <ul>
+      <li><strong>Carbapenems</strong> — Imipenem, Meropenem, Ertapenem</li>
+      <li><strong>Fluoroquinolones</strong> — Ciprofloxacin</li>
+      <li><strong>3rd-gen Cephalosporins</strong> — Cefotaxime, Ceftriaxone, Ceftazidime</li>
+      <li><strong>Aminoglycosides</strong> — Amikacin, Gentamicin</li>
+      <li><strong>β-lactam/β-lactamase inhibitors</strong> — Piperacillin-Tazobactam</li>
+      <li><strong>Last-resort agents</strong> — Colistin/Polymyxin B, Vancomycin, Linezolid, Minocycline</li>
+    </ul>
+    <h3>Important Caveats</h3>
+    <ul>
+      <li>All data are from ICMR tertiary-care hospitals; <strong>not representative of community resistance</strong>.</li>
+      <li>The surveillance network grew from 8 centres (2017) to 30+ sites (2024), affecting comparability.</li>
+      <li>2018–2019 data for some pathogen–antibiotic pairs were estimated by interpolation between 2017 and 2020 values where not directly reported in summary tables.</li>
+      <li>2020 data affected by COVID-19 pandemic (reduced admissions, altered case mix).</li>
+      <li>Carbapenem resistance definition varies slightly (imipenem vs meropenem); imipenem used as default where available.</li>
+      <li>The original ICMR AMRSN annual reports are authoritative; this is a secondary compilation for exploration.</li>
+    </ul>
+    <h3>How to Cite</h3>
+    <p style="background:#f3f4f6;border-radius:6px;padding:10px 12px;font-family:monospace;font-size:0.76rem;margin-top:6px">ICMR Antimicrobial Resistance Research and Surveillance Network (AMRSN). Annual Reports 2017–2024. Indian Council of Medical Research, New Delhi.</p>
+    <h3>Disclaimer</h3>
+    <p>Not produced or endorsed by ICMR. For informational and exploratory purposes only. <strong>Not for clinical, legal, or commercial decision-making.</strong> Dashboard code: MIT.</p>
+  </div>
+</div>
+
+<!-- ===== WHO GLASS TAB ===== -->
+<div id="tab-glass" class="tab-panel">
+  <div class="alert alert-info">🌍 <strong>WHO GLASS (Global Antimicrobial Resistance and Use Surveillance System)</strong> — Global median resistance rates from bloodstream infections across 104+ participating countries. Data reflect 2018–2023 reporting periods. Values are <em>global medians</em>, not India-specific. Source: WHO GLASS Annual Reports (iris.who.int).</div>
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#2980b9">
+      <div class="label">Countries Enrolled</div>
+      <div class="value" style="color:#2980b9">127</div>
+      <div class="sub">Countries/territories in GLASS (2023)</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e74c3c">
+      <div class="label">E. coli 3GC-R (BSI)</div>
+      <div class="value" style="color:#e74c3c">44.8%</div>
+      <div class="sub">Global median, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e67e22">
+      <div class="label">K. pneumoniae CR (BSI)</div>
+      <div class="value" style="color:#e67e22">11%</div>
+      <div class="sub">Global median carbapenem-R, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#27ae60">
+      <div class="label">MRSA (BSI)</div>
+      <div class="value" style="color:#27ae60">38%</div>
+      <div class="sub">Global median, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#8e44ad">
+      <div class="label">Acinetobacter CR (BSI)</div>
+      <div class="value" style="color:#8e44ad">62%</div>
+      <div class="sub">Global median, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#c0392b">
+      <div class="label">Kp 3GC-R (BSI)</div>
+      <div class="value" style="color:#c0392b">57%</div>
+      <div class="sub">Global median, 2023</div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>E. coli Resistance Trends (Global Median, BSI)</h3>
+      <div class="chart-sub">3rd-Gen Cephalosporin · Fluoroquinolone · Carbapenem — WHO GLASS 2018–2023</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="glassEcoliChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>K. pneumoniae Resistance Trends (Global Median, BSI)</h3>
+      <div class="chart-sub">3rd-Gen Cephalosporin · Carbapenem · 3GC+CR combined — WHO GLASS 2018–2023</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="glassKpChart"></canvas></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>MRSA & Acinetobacter CR (Global Median, BSI)</h3>
+      <div class="chart-sub">MRSA rate · Carbapenem-resistant Acinetobacter — WHO GLASS 2018–2023</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="glassMrsaAbauChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>South-East Asia Region (SEAR) Highlights</h3>
+      <div class="chart-sub">Select pathogens — SEAR median vs Global median (latest available data)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="glassSearChart"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3>WHO GLASS Key Indicators — Global vs SEAR vs India Context (2023)</h3>
+    <div class="chart-sub">Percentage resistance in bloodstream infections across indicator pathogens. India context from GLASS 2025 report (1 in 3 infections resistant).</div>
+    <div class="heatmap-wrap" style="margin-top:10px">
+      <table class="heatmap-table" id="glassHeatmap">
+        <thead><tr>
+          <th style="text-align:left">Pathogen / Drug</th>
+          <th>Global Median</th><th>SEAR Region</th><th>Africa</th><th>Americas</th><th>Europe</th>
+        </tr></thead>
+        <tbody id="glassHeatmapBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="alert alert-warn" style="margin-top:6px">⚠️ GLASS data represent participating countries only; lower-income countries may be under-represented. Blood isolates only. Resistance definitions (EUCAST/CLSI) may vary by country. Values are approximate medians from published WHO GLASS reports (2022, 2025).</div>
+</div>
+
+<!-- ===== NARS-NET TAB ===== -->
+<div id="tab-narsnet" class="tab-panel">
+  <div class="alert alert-info">🇮🇳 <strong>NARS-Net — National AMR Surveillance Network (India)</strong> — Operated by NCDC, Ministry of Health & Family Welfare. Sentinel laboratory-based surveillance from 41 Government Medical College hospitals in 31 States/UTs. Covers 9 priority pathogens (BSI + other specimens). Source: NCDC NARS-Net Annual Reports 2017–2023 (ncdc.mohfw.gov.in).</div>
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#1a3a5c">
+      <div class="label">Sentinel Sites (2023)</div>
+      <div class="value" style="color:#1a3a5c">41</div>
+      <div class="sub">Govt Medical Colleges, 31 States/UTs</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e74c3c">
+      <div class="label">E. coli Carbapenem-R</div>
+      <div class="value" style="color:#e74c3c">40%</div>
+      <div class="sub">Blood isolates, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e67e22">
+      <div class="label">K. spp. Carbapenem-R</div>
+      <div class="value" style="color:#e67e22">54%</div>
+      <div class="sub">Blood isolates, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#27ae60">
+      <div class="label">MRSA Rate</div>
+      <div class="value" style="color:#27ae60">57%</div>
+      <div class="sub">All S. aureus isolates, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#8e44ad">
+      <div class="label">Acinetobacter CR</div>
+      <div class="value" style="color:#8e44ad">88%</div>
+      <div class="sub">Carbapenem-resistant, 2023</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#c0392b">
+      <div class="label">E. coli ESBL (Blood)</div>
+      <div class="value" style="color:#c0392b">82%</div>
+      <div class="sub">ESBL-producing, blood, 2023</div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>E. coli — NARS-Net Trends 2017–2023</h3>
+      <div class="chart-sub">ESBL (blood) · Carbapenem-R (blood) — Government Medical College sentinel sites</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="narsEcoliChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Klebsiella spp. — NARS-Net Trends 2017–2023</h3>
+      <div class="chart-sub">3GC-R (blood) · Carbapenem-R (blood)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="narsKpChart"></canvas></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>MRSA Trends — NARS-Net 2017–2023</h3>
+      <div class="chart-sub">Cefoxitin surrogate for mecA; blood isolates separately tracked</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="narsMrsaChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Acinetobacter spp. CR Trends — NARS-Net 2017–2023</h3>
+      <div class="chart-sub">Carbapenem (imipenem/meropenem) resistance in Acinetobacter spp.</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="narsAbauChart"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3>NARS-Net 2023 Summary — All Priority Pathogens</h3>
+    <div class="chart-sub">Resistance to key drugs in 9 WHO/NARS-Net priority pathogens. Blood isolates where available.</div>
+    <div class="heatmap-wrap" style="margin-top:10px">
+      <table class="heatmap-table" id="narsHeatmap">
+        <thead><tr>
+          <th style="text-align:left">Pathogen</th>
+          <th>3GC/ESBL-R</th><th>Carbapenem-R</th><th>Fluoroquinolone-R</th><th>Colistin-R</th><th>Special</th>
+        </tr></thead>
+        <tbody id="narsHeatmapBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="alert alert-warn" style="margin-top:6px">⚠️ NARS-Net covers Government Medical College hospitals — may differ from private tertiary-care (ICMR AMRSN) and community settings. ESBL % reflects isolates from blood; overall (all specimens) rates differ. Colistin testing limited by method variability.</div>
+</div>
+
+<!-- ===== CROSS-SURVEILLANCE COMPARISON TAB ===== -->
+<div id="tab-compare" class="tab-panel">
+  <div class="alert alert-info">⚖️ <strong>Cross-Surveillance Comparison</strong> — Comparing resistance data across ICMR AMRSN (tertiary-care network, ~20 sites), NARS-Net (Govt Medical College sentinel, 41 sites), and WHO GLASS (global median, 104 countries). <em>Direct numerical comparison is indicative only</em> — networks differ in hospital type, specimen mix, breakpoint editions, and geography.</div>
+  <div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#1a3a5c">
+      <div class="label">ICMR AMRSN</div>
+      <div class="value" style="color:#1a3a5c; font-size:1rem">Tertiary/Teaching</div>
+      <div class="sub">~20 sites · 2017–2024 · ~100K isolates/yr</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#e67e22">
+      <div class="label">NARS-Net India</div>
+      <div class="value" style="color:#e67e22; font-size:1rem">Govt Med Colleges</div>
+      <div class="sub">41 sites · 2017–2023 · 31 States/UTs</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#2980b9">
+      <div class="label">WHO GLASS</div>
+      <div class="value" style="color:#2980b9; font-size:1rem">Global Median</div>
+      <div class="sub">104 countries · 2018–2023 · BSI only</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#27ae60">
+      <div class="label">India vs Global (E. coli CR)</div>
+      <div class="value" style="color:#c0392b">4–6×</div>
+      <div class="sub">India CR rate ~40% vs global 10%</div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>E. coli — Carbapenem Resistance: Three Networks</h3>
+      <div class="chart-sub">ICMR AMRSN (imipenem) · NARS-Net (any carbapenem, blood) · WHO GLASS (global median, BSI) — 2018–2023</div>
+      <div class="chart-wrap" style="height:270px"><canvas id="cmpEcoliChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>K. pneumoniae — Carbapenem Resistance: Three Networks</h3>
+      <div class="chart-sub">Same network definitions. India rates substantially exceed global median.</div>
+      <div class="chart-wrap" style="height:270px"><canvas id="cmpKpChart"></canvas></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>MRSA Rate: Three Networks</h3>
+      <div class="chart-sub">S. aureus isolates identified as MRSA (cefoxitin/oxacillin surrogate). Network differences influence rates.</div>
+      <div class="chart-wrap" style="height:270px"><canvas id="cmpMrsaChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Acinetobacter Carbapenem-R: Three Networks</h3>
+      <div class="chart-sub">Convergence between Indian networks; both far above global median.</div>
+      <div class="chart-wrap" style="height:270px"><canvas id="cmpAbauChart"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3>Radar Comparison — Latest Year Data (2023)</h3>
+    <div class="chart-sub">Normalised resistance scores across 4 pathogen-drug combinations. Scale 0–100%. All three networks on a single radar.</div>
+    <div class="chart-wrap" style="height:320px"><canvas id="cmpRadarChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Network Concordance Summary</h3>
+    <div class="chart-sub">Do ICMR AMRSN and NARS-Net agree? Where do they diverge? Where does India exceed WHO GLASS global median?</div>
+    <div class="heatmap-wrap" style="margin-top:10px">
+      <table class="heatmap-table" id="cmpConcordTable">
+        <thead><tr>
+          <th style="text-align:left">Metric (2023)</th>
+          <th>ICMR AMRSN</th><th>NARS-Net</th><th>WHO GLASS Global</th><th>India vs Global</th><th>Agreement</th>
+        </tr></thead>
+        <tbody id="cmpConcordBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="alert alert-warn" style="margin-top:6px">⚠️ Comparison caveats: (1) ICMR AMRSN uses imipenem; NARS-Net uses any carbapenem — inflates NARS-Net rates. (2) WHO GLASS reports bloodstream infections only; Indian networks include all specimens. (3) CLSI breakpoint editions may differ across years and networks. (4) Network size and hospital type differ substantially. These comparisons are exploratory, not definitive.</div>
+</div>
+
+</main>
+<footer>
+  Data: ICMR AMRSN Annual Reports 2017–2024 · NARS-Net (NCDC/MoHFW) Annual Reports 2017–2023 · WHO GLASS Reports 2018–2023 · Not endorsed by ICMR, NCDC or WHO · Not for clinical decisions
+</footer>
+
+<script>
+// ======================================================================
+// CORE DATA
+// ======================================================================
+const YEARS = [2017,2018,2019,2020,2021,2022,2023,2024];
+const YEAR_IDX = y => YEARS.indexOf(y);
+
+// Pathogen carbapenem / MRSA resistance (primary metric, all years)
+const PATHOGENS = [
+  { key:'ecoli',  name:'E. coli',       fullName:'Escherichia coli',          metric:'Carbapenem (Imipenem) R%', color:'#e74c3c',
+    values:[18.6,27.3,36.6,28.0,35.9,34.0,37.3,42.4],
+    flags:[null,null,null,null,null,null,null,null],
+    info:`<strong>E. coli</strong> is the most common UTI and BSI pathogen. Imipenem susceptibility fell from 81.4% (2017) to 57.6% (2024). Meropenem resistance reached 37.1% in 2024. Piperacillin-tazobactam susceptibility fell from 56.8% → 41.3%. CTX-M-15 dominant ESBL mechanism. Amikacin relatively preserved at 72.5% in 2024.`,
+    notes:['2020 dip reflects COVID patient mix changes','Ciprofloxacin resistance: 89.4% in 2024','Amikacin still ~72% susceptible (2024)']
+  },
+  { key:'kpneu', name:'K. pneumoniae',  fullName:'Klebsiella pneumoniae',     metric:'Carbapenem (Imipenem) R%', color:'#e67e22',
+    values:[41.5,48.2,54.3,55.0,56.8,58.0,64.4,68.8],
+    flags:[null,null,null,null,null,null,null,null],
+    info:`<strong>K. pneumoniae</strong> shows the steepest resistance trajectory. 80% of K. pneumoniae BSIs were imipenem-resistant in 2023. Piperacillin-tazobactam resistance reached 74% in 2024. SHV-type ESBLs predominant. NDM, OXA-48, KPC carbapenemases detected.`,
+    notes:['Steepest trajectory of all pathogens','80% of BSI isolates imipenem resistant (2023)','Pip-tazo resistance: 74% in 2024']
+  },
+  { key:'abau',  name:'A. baumannii',   fullName:'Acinetobacter baumannii',   metric:'Carbapenem Resistance %',  color:'#8e44ad',
+    values:[77.3,80.0,83.0,88.5,87.5,87.8,88.0,91.0],
+    flags:[null,'est','est',null,null,null,null,null],
+    info:`<strong>A. baumannii</strong> is effectively pan-resistant. Meropenem resistance: 91% in 2024. Only colistin (2.6% resistance) and minocycline (~30% resistance) retain meaningful activity. blaOXA-23 responsible for >95% of carbapenem resistance. blaNDM co-carriage expanding.`,
+    notes:['2018-2019 values interpolated/estimated','blaOXA-23 in >95% of CR isolates','91% of BSI isolates imipenem resistant (2023)']
+  },
+  { key:'paer',  name:'P. aeruginosa',  fullName:'Pseudomonas aeruginosa',    metric:'Carbapenem (Imipenem) R%', color:'#2980b9',
+    values:[26.4,null,null,35.0,35.0,36.0,38.5,43.1],
+    flags:[null,'nd','nd',null,null,null,null,null],
+    info:`<strong>P. aeruginosa</strong> dominates LRT/ICU specimens. Consistent upward carbapenem resistance (26.4% → 43.1%). Meropenem resistance: 38% in 2024. Ceftazidime and pip-tazo resistance relatively stable (~34%). Colistin remains highly effective (&lt;3% resistant).`,
+    notes:['LRT predominant — highest in ICU VAP','Meropenem resistance: 38% (2024)','Pip-tazo relatively stable at ~31%']
+  },
+  { key:'mrsa',  name:'S. aureus (MRSA)',fullName:'Staphylococcus aureus',    metric:'MRSA Rate %',              color:'#27ae60',
+    values:[31.9,40.4,42.1,41.1,38.8,45.3,48.4,50.1],
+    flags:[null,null,null,null,null,null,null,null],
+    info:`<strong>MRSA</strong> crossed 50% in 2024. In ICU BSIs, 87% of S. aureus are MRSA. Vancomycin remains 100% active (VRSA never reported in India AMRSN network). Linezolid resistance very low (&lt;1%). VRE: 22% overall in 2024 (E. faecium 34.2%).`,
+    notes:['Vancomycin: 0% resistance (fully preserved)','Linezolid: <1% resistance','VRE: 22% overall in 2024']
+  }
+];
+
+// Antibiotic-specific resistance data (resistance %)
+// Structure: abxName -> pathogenName -> array of 8 values (null = no data)
+const ABX = {
+  "Carbapenems (Imipenem)": {
+    "E. coli":       [18.6,27.3,36.6,28.0,35.9,34.0,37.3,42.4],
+    "K. pneumoniae": [41.5,48.2,54.3,55.0,56.8,58.0,64.4,68.8],
+    "A. baumannii":  [85.0,null,null,88.9,87.9,null,88.0,91.6],
+    "P. aeruginosa": [26.4,null,null,35.0,35.0,36.0,38.5,43.1],
+  },
+  "Carbapenems (Meropenem)": {
+    "E. coli":       [26.8,null,null,24.2,30.5,null,34.0,37.1],
+    "K. pneumoniae": [51.9,null,null,52.9,55.0,null,62.4,64.9],
+    "A. baumannii":  [81.3,null,null,88.5,87.5,87.8,88.0,91.0],
+    "P. aeruginosa": [31.3,null,null,null,32.8,null,34.5,38.0],
+  },
+  "Fluoroquinolones (Ciprofloxacin)": {
+    "E. coli":       [80.8,null,null,77.7,null,null,87.2,89.4],
+    "K. pneumoniae": [68.0,null,null,66.5,null,null,82.9,79.6],
+    "P. aeruginosa": [42.2,null,null,null,null,null,null,43.0],
+    "A. baumannii":  [null,null,null,null,null,null,null,null],
+  },
+  "3G Cephalosporins (Cefotaxime)": {
+    "E. coli":       [84.7,null,null,84.4,null,null,85.1,84.1],
+    "K. pneumoniae": [78.2,null,null,80.8,null,null,82.7,79.7],
+    "P. aeruginosa": [34.6,null,null,null,null,null,null,35.8],
+    "A. baumannii":  [null,null,null,null,null,null,null,null],
+  },
+  "Aminoglycosides (Amikacin)": {
+    "E. coli":       [20.8,null,null,18.7,null,null,31.8,27.5],
+    "K. pneumoniae": [51.1,null,null,52.8,null,null,65.5,60.1],
+    "P. aeruginosa": [31.1,null,null,null,null,null,null,26.7],
+    "A. baumannii":  [null,null,null,null,null,null,null,null],
+  },
+  "Piperacillin-Tazobactam": {
+    "E. coli":       [43.2,null,null,46.6,null,null,57.6,58.7],
+    "K. pneumoniae": [57.4,null,null,63.5,null,null,73.5,74.0],
+    "P. aeruginosa": [31.1,null,null,null,null,null,null,30.7],
+    "A. baumannii":  [null,null,null,null,null,null,null,null],
+  },
+  "Colistin / Polymyxin": {
+    "E. coli":       [1.0,null,null,null,null,null,0.7,0.5],
+    "K. pneumoniae": [13.0,null,null,null,null,null,3.8,3.9],
+    "A. baumannii":  [9.7,null,null,null,null,null,null,2.6],
+    "P. aeruginosa": [2.0,null,null,null,null,null,null,3.0],
+  },
+  "Vancomycin (Enterococci/S. aureus)": {
+    "S. aureus":       [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],
+    "E. faecium (VRE)":[null,null,null,null,null,null,29.6,34.2],
+    "E. faecalis (VRE)":[null,null,null,null,null,null,5.8,3.4],
+  }
+};
+
+// Per-pathogen 2024 antibiotic profile
+const PATHOGEN_ABX_2024 = {
+  "E. coli": {
+    labels:["Ciprofloxacin","Cefotaxime","Pip-Tazo","Imipenem","Meropenem","Amikacin","Colistin"],
+    vals:   [89.4,          84.1,        58.7,      42.4,      37.1,       27.5,      0.5],
+    colors: ["#e74c3c","#e74c3c","#e67e22","#e74c3c","#e74c3c","#f39c12","#27ae60"]
+  },
+  "K. pneumoniae": {
+    labels:["Pip-Tazo","Cefotaxime","Ciprofloxacin","Imipenem","Meropenem","Amikacin","Colistin"],
+    vals:   [74.0,      79.7,        79.6,            68.8,      64.9,       60.1,      3.9],
+    colors: ["#e74c3c","#e74c3c","#e74c3c","#e74c3c","#e74c3c","#e74c3c","#27ae60"]
+  },
+  "A. baumannii": {
+    labels:["Imipenem","Meropenem","Minocycline","Colistin"],
+    vals:   [91.6,      91.0,        29.8,         2.6],
+    colors: ["#c0392b","#c0392b","#f39c12","#27ae60"]
+  },
+  "P. aeruginosa": {
+    labels:["Imipenem","Ciprofloxacin","Meropenem","Ceftazidime","Pip-Tazo","Amikacin","Colistin"],
+    vals:   [43.1,      43.0,           38.0,        35.8,         30.7,      26.7,      3.0],
+    colors: ["#e74c3c","#e67e22","#e67e22","#f39c12","#f39c12","#f39c12","#27ae60"]
+  },
+  "S. aureus": {
+    labels:["MRSA (Oxacillin)","Erythromycin*","Clindamycin*","Ciprofloxacin*","Linezolid","Vancomycin"],
+    vals:   [50.1,               55.0,            38.0,            48.0,            1.0,       0.0],
+    colors: ["#e74c3c","#e67e22","#f39c12","#e67e22","#27ae60","#27ae60"]
+  }
+};
+
+// ABX notes
+const ABX_NOTES = {
+  "Carbapenems (Imipenem)":"Imipenem is the first-choice carbapenem for ESBL producers and CRE risk stratification. The consistent rise across all Gram-negatives is the most alarming AMR trend in India.",
+  "Carbapenems (Meropenem)":"Meropenem resistance trends closely parallel imipenem. Meropenem preferred for CNS infections. Co-resistance to both carbapenems virtually eliminates β-lactam options.",
+  "Fluoroquinolones (Ciprofloxacin)":"Ciprofloxacin resistance in E. coli (89.4%) renders fluoroquinolones essentially unusable for empiric UTI/BSI therapy. K. pneumoniae also at 79.6%.",
+  "3G Cephalosporins (Cefotaxime)":"Cefotaxime resistance reflects ESBL production (predominantly CTX-M-15 in E. coli). >80% non-susceptibility for both E. coli and K. pneumoniae across all years.",
+  "Aminoglycosides (Amikacin)":"Amikacin is better preserved than other aminoglycosides. E. coli amikacin resistance 27.5% in 2024 — relatively low compared to other classes. Used as combination therapy.",
+  "Piperacillin-Tazobactam":"Pip-tazo resistance for E. coli increased from 43% → 58.7%. K. pneumoniae at 74%. Pip-tazo is no longer reliably active for empiric therapy against K. pneumoniae in India.",
+  "Colistin / Polymyxin":"Colistin remains the most reliably active antibiotic against carbapenem-resistant Gram-negatives. E. coli resistance only 0.5%. K. pneumoniae was 13% in 2017 but fell to ~4% — likely due to declining use after initial increase.",
+  "Vancomycin (Enterococci/S. aureus)":"Vancomycin resistance in S. aureus (VRSA): 0% throughout all 8 years — vancomycin remains fully active against S. aureus. VRE in E. faecium: 34.2% (2024)."
+};
+
+// Matrix data lookup: ABX_MATRIX[pathogen][abx][year_index]
+// We build this from ABX + PATHOGENS
+function getMatrixValue(pathogen, abx, yearIdx) {
+  const abxData = ABX[abx];
+  if (!abxData || !abxData[pathogen]) return null;
+  return abxData[pathogen][yearIdx];
+}
+
+const MATRIX_ROWS = ["Carbapenems (Imipenem)","Carbapenems (Meropenem)","Fluoroquinolones (Ciprofloxacin)",
+  "3G Cephalosporins (Cefotaxime)","Aminoglycosides (Amikacin)","Piperacillin-Tazobactam","Colistin / Polymyxin"];
+const MATRIX_COLS = ["E. coli","K. pneumoniae","A. baumannii","P. aeruginosa"];
+const MATRIX_SHORT = ["Carbapenem\n(Imipenem)","Carbapenem\n(Meropenem)","Fluoroquinolone\n(Cipro)","3G Ceph\n(Cefotaxime)","Amikacin","Pip-Tazo","Colistin"];
+
+// Total isolates
+const TOTAL_ISOLATES = [45930,60497,107387,65561,95728,107053,99492,99027];
+const VRE = [null,null,null,null,null,null,17.5,22.0];
+
+// Pathogen colors
+const P_COLORS = { "E. coli":"#e74c3c","K. pneumoniae":"#e67e22","A. baumannii":"#8e44ad","P. aeruginosa":"#2980b9","S. aureus":"#27ae60","E. faecium (VRE)":"#16a085","E. faecalis (VRE)":"#1abc9c" };
+
+// ======================================================================
+// CHART UTILITIES
+// ======================================================================
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+function baseOpts(yMax=100, yLabel='Resistance (%)') {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{backgroundColor:'#1a3a5c',padding:9,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw!==null?c.raw+'%':'N/A'}`}}
+    },
+    scales:{
+      x:{grid:{display:false}},
+      y:{min:0,max:yMax,title:{display:true,text:yLabel,font:{size:10}},ticks:{callback:v=>v+'%'}}
+    }
+  };
+}
+
+function mkDS(label,data,color,dash=false,flags=null) {
+  return {
+    label, data,
+    borderColor:color,
+    backgroundColor: color+'22',
+    pointBackgroundColor: flags ? data.map((_,i)=>flags[i]==='est'||flags[i]==='nd'?'#fff':color) : color,
+    pointBorderColor: color,
+    pointBorderWidth: flags ? data.map((_,i)=>flags[i]==='est'||flags[i]==='nd'?2:1) : 1,
+    pointRadius:5,
+    tension:0.35,
+    spanGaps:true,
+    fill:false,
+    borderDash: dash?[5,4]:[],
+  };
+}
+
+function toggleDS(chart, idx, btn) {
+  btn.classList.toggle('active');
+  chart.data.datasets[idx].hidden = !btn.classList.contains('active');
+  chart.update();
+}
+
+// ======================================================================
+// BUILD CHARTS
+// ======================================================================
+
+// Overview
+const overviewCtx = document.getElementById('overviewChart').getContext('2d');
+const overviewChart = new Chart(overviewCtx, {
+  type:'line',
+  data:{labels:YEARS, datasets:PATHOGENS.map(p=>mkDS(p.name,p.values,p.color,false,p.flags))},
+  options:baseOpts()
+});
+const leg = document.getElementById('overview-legend');
+PATHOGENS.forEach(p=>{const d=document.createElement('div');d.className='legend-item';d.innerHTML=`<div class="legend-dot" style="background:${p.color}"></div><span>${p.name}</span>`;leg.appendChild(d);});
+
+// Isolates
+new Chart(document.getElementById('isolatesChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:YEARS,datasets:[{label:'Isolates',data:TOTAL_ISOLATES,backgroundColor:YEARS.map(y=>y===2020?'#f59e0b':'#1a3a5c'),borderRadius:4}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a3a5c',callbacks:{label:c=>` ${c.raw.toLocaleString()} isolates`}}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>(v/1000).toFixed(0)+'k'}}}}
+});
+
+// Snapshot 2024
+new Chart(document.getElementById('snapshotChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:PATHOGENS.map(p=>p.name),datasets:[{label:'2024 R%',data:PATHOGENS.map(p=>p.values[7]),backgroundColor:PATHOGENS.map(p=>p.color+'cc'),borderColor:PATHOGENS.map(p=>p.color),borderWidth:1,borderRadius:4}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}
+});
+
+// Trends
+const trendsChart = new Chart(document.getElementById('trendsChart').getContext('2d'),{
+  type:'line',
+  data:{labels:YEARS,datasets:PATHOGENS.map(p=>mkDS(p.name,p.values,p.color,false,p.flags))},
+  options:baseOpts()
+});
+
+// GN
+new Chart(document.getElementById('gnChart').getContext('2d'),{
+  type:'line',
+  data:{labels:YEARS,datasets:[PATHOGENS[0],PATHOGENS[1],PATHOGENS[3]].map(p=>mkDS(p.name,p.values,p.color,false,p.flags))},
+  options:baseOpts()
+});
+
+// GP
+new Chart(document.getElementById('gpChart').getContext('2d'),{
+  type:'line',
+  data:{labels:YEARS,datasets:[
+    mkDS('MRSA %',PATHOGENS[4].values,'#27ae60'),
+    mkDS('VRE %',VRE,'#16a085',true)
+  ]},
+  options:{...baseOpts(80,'Rate (%)'),plugins:{...baseOpts(80).plugins,legend:{display:false}}}
+});
+
+// Abau
+new Chart(document.getElementById('abauChart').getContext('2d'),{
+  type:'line',
+  data:{labels:YEARS,datasets:[{...mkDS('A. baumannii (Meropenem R%)',PATHOGENS[2].values,'#8e44ad',false,PATHOGENS[2].flags),fill:true,backgroundColor:'#8e44ad25'}]},
+  options:{...baseOpts(100),scales:{x:{grid:{display:false}},y:{min:60,max:100,ticks:{callback:v=>v+'%'}}}}
+});
+
+// ======================================================================
+// BY ANTIBIOTIC TAB
+// ======================================================================
+const abxNames = Object.keys(ABX);
+let currentAbx = abxNames[0];
+let abxChart = null;
+let abxBarChart = null;
+
+function buildAbxBtns() {
+  const grid = document.getElementById('abxBtnGrid');
+  abxNames.forEach((name,i)=>{
+    const b=document.createElement('button');
+    b.className='abx-btn'+(i===0?' active':'');
+    b.textContent=name;
+    b.onclick=()=>selectAbx(name,b);
+    grid.appendChild(b);
+  });
+}
+
+function selectAbx(name, btn) {
+  document.querySelectorAll('.abx-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentAbx = name;
+  renderAbxChart();
+  document.getElementById('abxNotes').textContent = ABX_NOTES[name] || '';
+}
+
+function renderAbxChart() {
+  const data = ABX[currentAbx];
+  if (!data) return;
+  const pathogens = Object.keys(data).filter(p=>data[p].some(v=>v!==null));
+  const datasets = pathogens.map(p=>mkDS(p,data[p],P_COLORS[p]||'#666'));
+
+  // Legend
+  const leg = document.getElementById('abx-legend');
+  leg.innerHTML='';
+  pathogens.forEach(p=>{const d=document.createElement('div');d.className='legend-item';d.innerHTML=`<div class="legend-dot" style="background:${P_COLORS[p]||'#666'}"></div><span>${p}</span>`;leg.appendChild(d);});
+
+  if (abxChart) abxChart.destroy();
+  abxChart = new Chart(document.getElementById('abxChart').getContext('2d'),{
+    type:'line',
+    data:{labels:YEARS,datasets},
+    options:baseOpts()
+  });
+}
+
+function updateAbxBar() {
+  const pathogen = document.getElementById('abxBarPathogenSel').value;
+  document.getElementById('abxBarTitle').textContent = pathogen;
+  const d = PATHOGEN_ABX_2024[pathogen];
+  if (!d) return;
+  if (abxBarChart) abxBarChart.destroy();
+  abxBarChart = new Chart(document.getElementById('abxBarChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:d.labels,datasets:[{label:'Resistance %',data:d.vals,backgroundColor:d.colors.map(c=>c+'cc'),borderColor:d.colors,borderWidth:1,borderRadius:4}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% resistant`}}},
+      scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}
+    }
+  });
+}
+
+// Delta chart (2017→2024 change)
+function buildDeltaChart() {
+  const pairs=[
+    {label:'E. coli — Cipro',        val: 89.4-80.8, color:'#e74c3c'},
+    {label:'E. coli — Imipenem',     val: 42.4-18.6, color:'#c0392b'},
+    {label:'E. coli — Pip-Tazo',     val: 58.7-43.2, color:'#e74c3c'},
+    {label:'E. coli — Amikacin',     val: 27.5-20.8, color:'#e74c3c'},
+    {label:'K.pneu — Imipenem',      val: 68.8-41.5, color:'#e67e22'},
+    {label:'K.pneu — Pip-Tazo',      val: 74.0-57.4, color:'#e67e22'},
+    {label:'K.pneu — Amikacin',      val: 60.1-51.1, color:'#f39c12'},
+    {label:'P.aer — Imipenem',       val: 43.1-26.4, color:'#2980b9'},
+    {label:'A.bau — Meropenem',      val: 91.0-81.3, color:'#8e44ad'},
+    {label:'MRSA',                   val: 50.1-31.9, color:'#27ae60'},
+  ].sort((a,b)=>b.val-a.val);
+  new Chart(document.getElementById('deltaChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:pairs.map(p=>p.label),datasets:[{label:'Δ% (2017→2024)',data:pairs.map(p=>+p.val.toFixed(1)),backgroundColor:pairs.map(p=>p.color+'cc'),borderColor:pairs.map(p=>p.color),borderWidth:1,borderRadius:4}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` +${c.raw}% increase`}}},
+      scales:{x:{title:{display:true,text:'Increase in resistance % (2017 → 2024)',font:{size:10}}},y:{grid:{display:false}}}
+    }
+  });
+}
+
+// Colistin
+new Chart(document.getElementById('colistinChart').getContext('2d'),{
+  type:'line',
+  data:{labels:YEARS,datasets:[
+    mkDS('E. coli',    ABX['Colistin / Polymyxin']['E. coli'],       '#e74c3c'),
+    mkDS('K. pneu',    ABX['Colistin / Polymyxin']['K. pneumoniae'], '#e67e22'),
+    mkDS('A. baumannii',ABX['Colistin / Polymyxin']['A. baumannii'], '#8e44ad'),
+    mkDS('P. aeruginosa',ABX['Colistin / Polymyxin']['P. aeruginosa'],'#2980b9'),
+  ]},
+  options:{...baseOpts(25,'Resistance (%)'),scales:{x:{grid:{display:false}},y:{min:0,max:25,title:{display:true,text:'Resistance (%)',font:{size:10}},ticks:{callback:v=>v+'%'}}}}
+});
+
+buildAbxBtns();
+renderAbxChart();
+updateAbxBar();
+buildDeltaChart();
+document.getElementById('abxNotes').textContent = ABX_NOTES[abxNames[0]];
+
+// ======================================================================
+// RESISTANCE MATRIX
+// ======================================================================
+function hmColor(val) {
+  if (val === null) return {bg:'#f3f4f6',text:'#9ca3af',label:'N/A'};
+  if (val < 10)  return {bg:'#d1fae5',text:'#065f46',label:val+'%'};
+  if (val < 25)  return {bg:'#a7f3d0',text:'#065f46',label:val+'%'};
+  if (val < 40)  return {bg:'#fef9c3',text:'#78350f',label:val+'%'};
+  if (val < 60)  return {bg:'#fed7aa',text:'#7c2d12',label:val+'%'};
+  if (val < 75)  return {bg:'#fca5a5',text:'#7f1d1d',label:val+'%'};
+  return {bg:'#c0392b',text:'#ffffff',label:val+'%'};
+}
+
+function buildMatrix() {
+  const year = parseInt(document.getElementById('matrixYearSel').value);
+  const yIdx = YEAR_IDX(year);
+  const table = document.getElementById('matrixTable');
+  let html = '<thead><tr><th style="text-align:left">Antibiotic</th>';
+  MATRIX_COLS.forEach(c=>{ html+=`<th>${c}</th>`; });
+  html+='</tr></thead><tbody>';
+  MATRIX_ROWS.forEach((row,ri)=>{
+    html+=`<tr><td class="hm-row-label">${MATRIX_SHORT[ri].replace('\n','<br>')}</td>`;
+    MATRIX_COLS.forEach(col=>{
+      const v = getMatrixValue(col, row, yIdx);
+      const c = hmColor(v);
+      html+=`<td style="background:${c.bg};color:${c.text}" class="${v===null?'hm-na':''}" title="${col} — ${row}: ${v!==null?v+'%':'No data'}">${c.label}</td>`;
+    });
+    html+='</tr>';
+  });
+  table.innerHTML = html+'</tbody>';
+  populateMatAbxSel();
+}
+
+let matrixTrendChart = null;
+function populateMatAbxSel() {
+  const sel = document.getElementById('matAbx');
+  const savedVal = sel.value;
+  sel.innerHTML = MATRIX_ROWS.map(r=>`<option>${r}</option>`).join('');
+  if (savedVal) sel.value = savedVal;
+  updateMatrixTrend();
+}
+
+function updateMatrixTrend() {
+  const pathogen = document.getElementById('matPathogen').value;
+  const abxName = document.getElementById('matAbx').value;
+  const vals = ABX[abxName] && ABX[abxName][pathogen] ? ABX[abxName][pathogen] : Array(8).fill(null);
+  if (matrixTrendChart) matrixTrendChart.destroy();
+  const color = P_COLORS[pathogen]||'#1a3a5c';
+  matrixTrendChart = new Chart(document.getElementById('matrixTrendChart').getContext('2d'),{
+    type:'line',
+    data:{labels:YEARS,datasets:[{...mkDS(`${pathogen} — ${abxName}`,vals,color),fill:true,backgroundColor:color+'20'}]},
+    options:baseOpts()
+  });
+}
+
+buildMatrix();
+
+// ======================================================================
+// PATHOGEN EXPLORER
+// ======================================================================
+let detailChart=null, detailAbxChart=null;
+
+function buildPathogenCards() {
+  const grid=document.getElementById('pathogenGrid');
+  PATHOGENS.forEach((p,i)=>{
+    const curr=p.values[7]||p.values.filter(v=>v!==null).slice(-1)[0];
+    const prev=p.values[6]||p.values.filter(v=>v!==null).slice(-2)[0];
+    const delta=(curr-prev).toFixed(1);
+    const c=document.createElement('div');
+    c.className='pathogen-card'; c.style.borderTopColor=p.color;
+    c.innerHTML=`<h4>${p.name}</h4><div class="sci">${p.fullName}</div>
+      <div class="big" style="color:${p.color}">${curr}%</div>
+      <div class="sub2">${p.metric}</div>
+      <div style="margin-top:7px;font-size:0.76rem;color:${delta>0?'#c0392b':'#27ae60'};font-weight:700">${delta>0?'▲':'▼'} ${Math.abs(delta)}% from 2023</div>
+      <div class="from" style="margin-top:4px">2017 baseline: ${p.values[0]}%</div>`;
+    c.onclick=()=>selectPathogen(i,c);
+    grid.appendChild(c);
+  });
+}
+
+function selectPathogen(idx, cardEl) {
+  document.querySelectorAll('.pathogen-card').forEach(c=>c.classList.remove('selected'));
+  cardEl.classList.add('selected');
+  const p=PATHOGENS[idx];
+  document.getElementById('pathogen-detail').style.display='block';
+  document.getElementById('detail-title').textContent=`${p.name} — ${p.metric}`;
+  document.getElementById('detail-subtitle').textContent=p.fullName;
+  const level=p.values[7]>=80?['CRITICAL','badge-red']:p.values[7]>=50?['HIGH','badge-orange']:p.values[7]>=30?['MODERATE-HIGH','badge-yellow']:['MODERATE','badge-green'];
+  document.getElementById('detail-badges').innerHTML=`<span class="badge ${level[1]}">⚠ ${level[0]}</span>`;
+
+  document.getElementById('detail-info').innerHTML=(p.info||'')+`<br><br><strong>Notes:</strong><ul style="margin-top:4px;padding-left:16px">${(p.notes||[]).map(n=>`<li>${n}</li>`).join('')}</ul>`;
+
+  // Trend chart
+  if (detailChart) detailChart.destroy();
+  detailChart=new Chart(document.getElementById('detailChart').getContext('2d'),{
+    type:'line',
+    data:{labels:YEARS,datasets:[{...mkDS(p.name,p.values,p.color,false,p.flags),fill:true,backgroundColor:p.color+'20'}]},
+    options:baseOpts(100,p.metric)
+  });
+
+  // ABX profile chart
+  const abxD = PATHOGEN_ABX_2024[p.name] || PATHOGEN_ABX_2024['E. coli'];
+  if (detailAbxChart) detailAbxChart.destroy();
+  detailAbxChart=new Chart(document.getElementById('detailAbxChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:abxD.labels,datasets:[{label:'Resistance % (2024)',data:abxD.vals,backgroundColor:abxD.colors.map(c=>c+'cc'),borderColor:abxD.colors,borderWidth:1,borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% resistant`}}},scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}
+  });
+
+  // Year table
+  const tbody=document.getElementById('detail-table');
+  tbody.innerHTML=p.values.map((v,i)=>{
+    const prev=i>0?p.values[i-1]:null;
+    const validPrev=prev!==null;
+    const delta=validPrev?(v-prev).toFixed(1):null;
+    const dHtml=delta!==null?`<span style="color:${delta>0?'#c0392b':'#27ae60'};font-weight:700">${delta>0?'▲':'▼'} ${Math.abs(delta)}%</span>`:'—';
+    const flag=p.flags&&p.flags[i]==='est'?'<span class="badge badge-yellow">est</span>':p.flags&&p.flags[i]==='nd'?'<span class="badge badge-blue">N/A</span>':'';
+    const note=YEARS[i]===2020?'<span class="badge badge-orange">COVID year</span>':'';
+    return v!==null?`<tr><td><strong>${YEARS[i]}</strong></td><td>${v}% ${flag}</td><td>${dHtml}</td><td>${note}</td></tr>`:
+      `<tr><td><strong>${YEARS[i]}</strong></td><td><span class="badge badge-blue">No data</span></td><td>—</td><td></td></tr>`;
+  }).join('');
+
+  document.getElementById('pathogen-detail').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+buildPathogenCards();
+
+// ======================================================================
+// SPECIMEN TAB
+// ======================================================================
+new Chart(document.getElementById('specDistChart').getContext('2d'),{
+  type:'doughnut',
+  data:{
+    labels:['Enterobacterales','NFGNB','Staphylococci','Enterococci','Fungi','Others'],
+    datasets:[{
+      data:[53,22,15,6,2,2],
+      backgroundColor:['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#9ca3af'],
+      borderWidth:2, borderColor:'#fff'
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}%`}}}}
+});
+
+new Chart(document.getElementById('icuChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['E. coli\n(Imipenem)','K. pneumoniae\n(Imipenem)','A. baumannii\n(Meropenem)','P. aeruginosa\n(Imipenem)','S. aureus\n(MRSA)'],
+    datasets:[
+      {label:'ICU',  data:[52,75,95,50,87],   backgroundColor:'#c0392b99',borderColor:'#c0392b',borderWidth:1,borderRadius:3},
+      {label:'Ward', data:[40,65,85,38,48],   backgroundColor:'#e67e2299',borderColor:'#e67e22',borderWidth:1,borderRadius:3},
+      {label:'OPD',  data:[22,35,70,22,30],   backgroundColor:'#27ae6099',borderColor:'#27ae60',borderWidth:1,borderRadius:3},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'Resistance / MRSA rate %',font:{size:10}}}}
+  }
+});
+
+new Chart(document.getElementById('bsiChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['A. baumannii\n(Meropenem)','K. pneumoniae\n(Imipenem)','P. aeruginosa\n(Imipenem)','E. coli\n(Imipenem)','S. aureus\n(MRSA)','Enterococcus\n(Vancomycin)'],
+    datasets:[{label:'BSI resistance %',data:[91,80,45,45,63,30],backgroundColor:['#8e44adcc','#e67e22cc','#2980b9cc','#e74c3ccc','#27ae60cc','#16a085cc'],borderRadius:4}]
+  },
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% in BSI (2023)`}}},
+    scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}
+  }
+});
+
+// ======================================================================
+// DATA TABLE
+// ======================================================================
+const ALL_TABLE_ROWS = [];
+PATHOGENS.forEach(p=>{
+  p.values.forEach((v,i)=>{
+    if(v===null)return;
+    ALL_TABLE_ROWS.push({year:YEARS[i],pathogen:p.name,abx:'Carbapenem/MRSA (primary)',val:v,flag:p.flags?p.flags[i]:null,prev:i>0?p.values[i-1]:null});
+  });
+});
+Object.entries(ABX).forEach(([abxName,paths])=>{
+  Object.entries(paths).forEach(([path,vals])=>{
+    vals.forEach((v,i)=>{
+      if(v===null)return;
+      // avoid duplicating primary metric
+      ALL_TABLE_ROWS.push({year:YEARS[i],pathogen:path,abx:abxName,val:v,flag:null,prev:i>0?vals[i-1]:null});
+    });
+  });
+});
+window._tableRows=ALL_TABLE_ROWS;
+
+// Populate antibiotic filter
+const abxSel=document.getElementById('tableAbx');
+[...new Set(ALL_TABLE_ROWS.map(r=>r.abx))].forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;abxSel.appendChild(o);});
+
+function badgeCls(v){return v>=80?'badge-red':v>=50?'badge-orange':v>=30?'badge-yellow':'badge-green';}
+
+function filterTable(){
+  const p=document.getElementById('tablePathogen').value;
+  const a=document.getElementById('tableAbx').value;
+  const y=document.getElementById('tableYear').value;
+  const rows=ALL_TABLE_ROWS.filter(r=>
+    (p==='all'||r.pathogen===p)&&
+    (a==='all'||r.abx===a)&&
+    (y==='all'||r.year==y)
+  ).slice(0,200);
+  const tbody=document.getElementById('tableBody');
+  tbody.innerHTML=rows.map(r=>{
+    const delta=r.prev!==null?(r.val-r.prev).toFixed(1):null;
+    const dHtml=delta!==null?`<span style="color:${delta>0?'#c0392b':'#27ae60'};font-weight:700">${delta>0?'▲':'▼'} ${Math.abs(delta)}%</span>`:'—';
+    const fl=r.flag==='est'?'<span class="badge badge-yellow">est</span>':'';
+    return `<tr><td>${r.year}</td><td>${r.pathogen}</td><td>${r.abx}</td><td><span class="badge ${badgeCls(r.val)}">${r.val}%</span>${fl}</td><td>${dHtml}</td><td>ICMR AMRSN ${r.year}</td></tr>`;
+  }).join('');
+}
+filterTable();
+
+// ======================================================================
+// TABS
+// ======================================================================
+function showTab(name, linkEl){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  linkEl.classList.add('active');
+  if(name==='matrix') buildMatrix();
+  if(name==='antibiotics') { renderAbxChart(); updateAbxBar(); }
+  if(name==='stewardship') { buildScorecard(); buildSyndromeGuide(); }
+  if(name==='setting') buildSettingMatrix();
+  if(name==='velocity') buildVelocityLeaderboard();
+}
+
+// ======================================================================
+// SPECIAL PATHOGENS TAB
+// ======================================================================
+const SP_YEARS = [2017,2018,2019,2020,2021,2022,2023,2024];
+
+// Typhoidal Salmonella
+const TYPHI = {
+  cipro_R:      [88.4, 93.4, 93.0, 95.1, 80.4, 97.0, 97.9, 98.7], // FQ non-susceptible %
+  ceftriaxone_R:[0.5,  0.5,  0.8,  1.0,  1.2,  6.2,  0.8,  0.4],  // ceftriaxone resistant %
+  azithro_R:    [2.0,  3.0,  4.0,  5.0,  4.0,  5.0,  5.0,  5.0],  // azithromycin non-susceptible %
+};
+(()=>{
+  const leg=document.getElementById('shigella-legend');
+  const defs=[
+    {label:'Cipro non-susceptible %',color:'#e74c3c'},
+    {label:'Ceftriaxone resistant %',color:'#27ae60'},
+    {label:'Azithromycin non-susceptible %',color:'#2980b9'},
+  ];
+  defs.forEach(d=>{const el=document.createElement('div');el.className='legend-item';el.innerHTML=`<div class="legend-dot" style="background:${d.color}"></div><span>${d.label}</span>`;leg.appendChild(el);});
+  new Chart(document.getElementById('typhiTrendChart').getContext('2d'),{
+    type:'line',
+    data:{labels:SP_YEARS,datasets:[
+      mkDS('Cipro non-susceptible %',TYPHI.cipro_R,'#e74c3c'),
+      mkDS('Ceftriaxone R%',TYPHI.ceftriaxone_R,'#27ae60'),
+      mkDS('Azithromycin non-susceptible %',TYPHI.azithro_R,'#2980b9'),
+    ]},
+    options:baseOpts(100,'Resistance / Non-susceptibility %')
+  });
+})();
+
+// Shigella
+const SHIG = {
+  flexneri_ampR:  [55.1,65,72,78,80,88.2,80,72.7],
+  flexneri_ciproR:[95,96,96,97,97,96.5,97,94],
+  flexneri_cefS:  [80,78,75,72,70,67,75,88],    // cefixime susceptible %
+  sonnei_ciproR:  [50,55,60,58,55,52,50,48],
+  sonnei_azithroS:[90,88,86,85,82,80,78,76.8],   // azithromycin susceptible %
+};
+(()=>{
+  const leg=document.getElementById('shigella-legend');
+  const ds=[
+    mkDS('S. flexneri — Ampicillin R%', SHIG.flexneri_ampR, '#e74c3c'),
+    mkDS('S. flexneri — Ciprofloxacin R%', SHIG.flexneri_ciproR, '#c0392b',true),
+    mkDS('S. sonnei — Ciprofloxacin R%', SHIG.sonnei_ciproR, '#2980b9'),
+  ];
+  ds.forEach(d=>{const el=document.createElement('div');el.className='legend-item';el.innerHTML=`<div class="legend-dot" style="background:${d.borderColor}"></div><span>${d.label}</span>`;leg.appendChild(el);});
+  new Chart(document.getElementById('shigellaChart').getContext('2d'),{type:'line',data:{labels:SP_YEARS,datasets:ds},options:baseOpts()});
+})();
+
+// V. cholerae
+new Chart(document.getElementById('vibCholeraChart').getContext('2d'),{
+  type:'line',
+  data:{labels:SP_YEARS,datasets:[
+    mkDS('Tetracycline (susceptible %)',[97,96,95,96,97,97,97,97.5],'#27ae60'),
+    mkDS('TMP-SMX (susceptible %)',     [42,38,35,30,25,22,20,20],'#e67e22'),
+    mkDS('Ampicillin (susceptible %)',  [87,75,65,55,50,45,50,55],'#2980b9'),
+  ]},
+  options:{...baseOpts(100,'Susceptibility (%)'),plugins:{...baseOpts().plugins}}
+});
+
+// S. pneumoniae (2021-2024 only)
+new Chart(document.getElementById('streppneuChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['Penicillin R\n(Meningeal)','Erythromycin R','Cotrimoxazole R','Levofloxacin R','Vancomycin R'],
+    datasets:[
+      {label:'2021',data:[75,87,100,8,0],backgroundColor:'#93c5fdcc',borderColor:'#3b82f6',borderWidth:1,borderRadius:3},
+      {label:'2022',data:[76,82,85,7,0],backgroundColor:'#6ee7b7cc',borderColor:'#10b981',borderWidth:1,borderRadius:3},
+      {label:'2023',data:[77,76,73,8,0],backgroundColor:'#fca5a5cc',borderColor:'#ef4444',borderWidth:1,borderRadius:3},
+      {label:'2024',data:[76,79,75,8,0],backgroundColor:'#fcd34dcc',borderColor:'#f59e0b',borderWidth:1,borderRadius:3},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}% resistant`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'}}}}
+});
+
+// VRE trend
+const VRE_DATA = {
+  faecium_vre:[23.7,25,27,28,29,31,29.6,34.2],
+  faecalis_vre:[4,4,4,4,4,4,5.8,3.4],
+  vre_overall:[null,null,null,null,null,null,17.5,22],
+};
+new Chart(document.getElementById('vreTrendChart').getContext('2d'),{
+  type:'line',
+  data:{labels:SP_YEARS,datasets:[
+    mkDS('E. faecium VRE %',VRE_DATA.faecium_vre,'#c0392b'),
+    mkDS('E. faecalis VRE %',VRE_DATA.faecalis_vre,'#27ae60'),
+    mkDS('Overall VRE %',VRE_DATA.vre_overall,'#8e44ad',true),
+  ]},
+  options:{...baseOpts(50,'VRE Rate (%)'),scales:{x:{grid:{display:false}},y:{min:0,max:50,ticks:{callback:v=>v+'%'}}}}
+});
+new Chart(document.getElementById('enteroProfileChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['Ampicillin R','VRE (Vanco R)','Linezolid R','Teicoplanin R','High-level gentamicin R'],
+    datasets:[{label:'E. faecium R% (2024)',data:[88,34.2,9.1,28,45],
+      backgroundColor:['#c0392bcc','#c0392bcc','#e67e22cc','#e67e22cc','#f39c12cc'],
+      borderColor:['#c0392b','#c0392b','#e67e22','#e67e22','#f39c12'],borderWidth:1,borderRadius:3}]
+  },
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% resistant`}}},scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}
+});
+new Chart(document.getElementById('vreSettingChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['OPD','Ward','ICU'],
+    datasets:[{label:'E. faecium VRE % (2024)',data:[22.4,25.2,44.3],
+      backgroundColor:['#27ae60cc','#f59e0bcc','#c0392bcc'],
+      borderColor:['#27ae60','#f59e0b','#c0392b'],borderWidth:1,borderRadius:4}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% VRE`}}},scales:{x:{grid:{display:false}},y:{max:60,ticks:{callback:v=>v+'%'}}}}
+});
+
+// ======================================================================
+// MOLECULAR RESISTANCE TAB
+// ======================================================================
+const PIE_OPTS = (title) => ({
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{position:'right',labels:{font:{size:11},padding:8}},
+    tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}%`}},
+    title:{display:true,text:title,font:{size:11},padding:{bottom:6}}}
+});
+
+new Chart(document.getElementById('kpneuCarbGeneChart').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:['NDM','OXA-48','KPC','OXA-23','Other/Unknown'],
+    datasets:[{data:[65,20,5,3,7],backgroundColor:['#c0392b','#e67e22','#f59e0b','#8e44ad','#9ca3af'],borderWidth:2,borderColor:'#fff'}]},
+  options:PIE_OPTS('Carbapenemase genes in CR-K. pneumoniae')
+});
+new Chart(document.getElementById('abauMechChart').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:['OXA-23 (solo)','OXA-23 + NDM','OXA-51 + efflux','PCR-negative (porin/efflux)'],
+    datasets:[{data:[55,28,12,5],backgroundColor:['#8e44ad','#c0392b','#e67e22','#9ca3af'],borderWidth:2,borderColor:'#fff'}]},
+  options:PIE_OPTS('Mechanisms in CR-A. baumannii (2024)')
+});
+new Chart(document.getElementById('ecoliESBLChart').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:['CTX-M-15','CTX-M-27','SHV','TEM','Other CTX-M'],
+    datasets:[{data:[75,10,8,5,2],backgroundColor:['#e74c3c','#e67e22','#2980b9','#27ae60','#9ca3af'],borderWidth:2,borderColor:'#fff'}]},
+  options:PIE_OPTS('ESBL gene types in E. coli')
+});
+
+// MBL gene shift P. aeruginosa
+new Chart(document.getElementById('paerMBLChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:['2019','2020','2021','2022','2023','2024'],
+    datasets:[
+      {label:'NDM %',data:[30,35,40,50,55,55],backgroundColor:'#c0392bcc',borderColor:'#c0392b',borderWidth:1,borderRadius:3},
+      {label:'VIM %',data:[50,45,42,35,30,30],backgroundColor:'#2980b9cc',borderColor:'#2980b9',borderWidth:1,borderRadius:3},
+      {label:'IMP %',data:[12,10,10,10,10,10],backgroundColor:'#27ae60cc',borderColor:'#27ae60',borderWidth:1,borderRadius:3},
+      {label:'Other %',data:[8,10,8,5,5,5],backgroundColor:'#9ca3afcc',borderColor:'#9ca3af',borderWidth:1,borderRadius:3},
+    ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+    scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'% of MBL-positive CR-Pseudomonas',font:{size:9}}}}}
+});
+
+// Typhi MIC escalation
+new Chart(document.getElementById('typhiMICChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024'],
+    datasets:[{label:'CIP MIC90 (µg/ml)',data:[8,8,16,32,32,64,64,128,128],
+      backgroundColor:'#c0392bcc',borderColor:'#c0392b',borderWidth:1,borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` MIC90: ${c.raw} µg/ml`}}},
+    scales:{x:{grid:{display:false}},y:{title:{display:true,text:'Ciprofloxacin MIC90 (µg/ml)',font:{size:10}},ticks:{callback:v=>v+' µg/ml'}}}}
+});
+
+// ======================================================================
+// HAI & BSI TAB
+// ======================================================================
+const HAI_YEARS = [2021,2022,2023,2024];
+const HAI_RATES = {
+  bsi:     [6.51,5.08,6.40,4.90],
+  clabsi:  [3.10,6.66,8.30,7.70],
+  cauti:   [2.97,2.76,3.00,3.30],
+  vap:     [null,null,7.60,7.60],
+};
+const BSI_MORTALITY = [38.1,44.3,35.0,36.6];
+
+const haiLeg=document.getElementById('hai-legend');
+[{l:'BSI rate/1000PD',c:'#1a3a5c'},{l:'CLABSI/1000CLD',c:'#c0392b'},{l:'CAUTI/1000UCD',c:'#2980b9'},{l:'VAP/1000 vent-days',c:'#8e44ad'}].forEach(({l,c})=>{const el=document.createElement('div');el.className='legend-item';el.innerHTML=`<div class="legend-dot" style="background:${c}"></div><span>${l}</span>`;haiLeg.appendChild(el);});
+
+new Chart(document.getElementById('haiRatesChart').getContext('2d'),{
+  type:'line',
+  data:{labels:HAI_YEARS,datasets:[
+    mkDS('BSI /1000PD',  HAI_RATES.bsi,   '#1a3a5c'),
+    mkDS('CLABSI /1000CLD',HAI_RATES.clabsi,'#c0392b'),
+    mkDS('CAUTI /1000UCD',HAI_RATES.cauti, '#2980b9'),
+    mkDS('VAP /1000 vent-days',HAI_RATES.vap,'#8e44ad'),
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a3a5c',padding:9,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw!==null?c.raw:'N/A'}`}}},
+    scales:{x:{grid:{display:false}},y:{title:{display:true,text:'Rate',font:{size:10}}}}}
+});
+
+new Chart(document.getElementById('bsiMortalityChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:HAI_YEARS,datasets:[
+    {label:'BSI Mortality %',data:BSI_MORTALITY,backgroundColor:['#e74c3ccc','#c0392bcc','#e67e22cc','#e67e22cc'],borderColor:BSI_MORTALITY.map((_,i)=>['#e74c3c','#c0392b','#e67e22','#e67e22'][i]),borderWidth:1,borderRadius:4}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` BSI mortality: ${c.raw}%`}}},
+    scales:{x:{grid:{display:false}},y:{max:55,title:{display:true,text:'Case Fatality Rate (%)',font:{size:10}},ticks:{callback:v=>v+'%'}}}}
+});
+
+// BSI-specific vs overall
+new Chart(document.getElementById('bsiVsOverallChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['Kp Imipenem R','E. coli Imipenem R','A.bau Imipenem R','MRSA (S. aureus)','E.faecium VRE'],
+    datasets:[
+      {label:'Overall isolates (2024)',data:[68.8,42.4,91.0,50.1,34.2],backgroundColor:'#1a3a5ccc',borderColor:'#1a3a5c',borderWidth:1,borderRadius:3},
+      {label:'BSI-specific (2024)',    data:[77.6,56.6,91.0,63.0,42.0],backgroundColor:'#c0392bcc',borderColor:'#c0392b',borderWidth:1,borderRadius:3},
+      {label:'Tigecycline Active% (BSI)',data:[79.3,null,75.8,null,null],backgroundColor:'#27ae60cc',borderColor:'#27ae60',borderWidth:1,borderRadius:3},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: ${c.raw}%`:' N/A'}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'}}}}
+});
+
+// VAP organisms
+new Chart(document.getElementById('vapOrgsChart').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:['Acinetobacter spp.','Klebsiella pneumoniae','Pseudomonas aeruginosa','E. coli','Others'],
+    datasets:[{data:[43.6,17.7,17.5,8,13.2],backgroundColor:['#8e44adcc','#e67e22cc','#2980b9cc','#e74c3ccc','#9ca3afcc'],borderWidth:2,borderColor:'#fff'}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},padding:6}},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}%`}}}}
+});
+
+// Tigecycline
+new Chart(document.getElementById('tigeChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['K.pneu\nMeropenem','K.pneu\nTigecycline','A.bau\nMeropenem','A.bau\nTigecycline','E.coli\nMeropenem','E.coli\nTigecycline'],
+    datasets:[{label:'Susceptible % (2024 BSI)',data:[22.4,79.3,9,75.8,43.4,82],
+      backgroundColor:['#c0392bcc','#27ae60cc','#c0392bcc','#27ae60cc','#e67e22cc','#27ae60cc'],
+      borderColor:['#c0392b','#27ae60','#c0392b','#27ae60','#e67e22','#27ae60'],borderWidth:1,borderRadius:4}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` Susceptible: ${c.raw}%`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'% susceptible in BSI',font:{size:10}}}}}
+});
+
+// ======================================================================
+// CARE SETTING TAB
+// ======================================================================
+const SETTING_DATA = {
+  labels: ['E.coli\nImipenem','Kp\nImipenem','A.bau\nImipenem','P.aer\nImipenem','MRSA\nRate','E.faecium\nVRE'],
+  opd:    [22,35,72,25,30,22.4],
+  ward:   [40,65,87,37,48,25.2],
+  icu:    [52,75,94,51,87,44.3],
+};
+
+new Chart(document.getElementById('settingGradientChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:SETTING_DATA.labels,datasets:[
+    {label:'OPD',  data:SETTING_DATA.opd,  backgroundColor:'#27ae60bb',borderColor:'#27ae60',borderWidth:1,borderRadius:3},
+    {label:'Ward', data:SETTING_DATA.ward, backgroundColor:'#f59e0bbb',borderColor:'#f59e0b',borderWidth:1,borderRadius:3},
+    {label:'ICU',  data:SETTING_DATA.icu,  backgroundColor:'#c0392bbb',borderColor:'#c0392b',borderWidth:1,borderRadius:3},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'Resistance / MRSA rate %',font:{size:10}}}}}
+});
+
+// ICU/OPD ratio chart
+const icuOpdLabels=['E.coli Imip','Kp Imip','A.bau Imip','P.aer Imip','MRSA','VRE (Efaecium)'];
+const icuOpdRatios=SETTING_DATA.icu.map((v,i)=>(v/SETTING_DATA.opd[i]).toFixed(1));
+new Chart(document.getElementById('icuOpdRatioChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:icuOpdLabels,datasets:[{label:'ICU/OPD Resistance Ratio',data:icuOpdRatios,
+    backgroundColor:icuOpdRatios.map(v=>v>=3?'#c0392bcc':v>=2?'#e67e22cc':'#f59e0bcc'),
+    borderColor:icuOpdRatios.map(v=>v>=3?'#c0392b':v>=2?'#e67e22':'#f59e0b'),borderWidth:1,borderRadius:4}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ICU resistance is ${c.raw}× higher than OPD`}}},
+    scales:{x:{grid:{display:false}},y:{title:{display:true,text:'ICU ÷ OPD resistance ratio',font:{size:10}}}}}
+});
+
+new Chart(document.getElementById('vreSettingBarChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:['OPD','Ward','ICU'],datasets:[
+    {label:'E. faecium VRE %',data:[22.4,25.2,44.3],backgroundColor:['#27ae60cc','#f59e0bcc','#c0392bcc'],borderColor:['#27ae60','#f59e0b','#c0392b'],borderWidth:1,borderRadius:4},
+    {label:'E. faecalis VRE %',data:[2,3,5],backgroundColor:['#a7f3d0cc','#86efaccc','#4ade80cc'],borderColor:['#10b981','#10b981','#10b981'],borderWidth:1,borderRadius:4},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+    scales:{x:{grid:{display:false}},y:{max:60,ticks:{callback:v=>v+'%'}}}}
+});
+
+// Setting heatmap
+(()=>{
+  const rows=[
+    ['E. coli — Imipenem',   22,40,52],
+    ['K. pneumoniae — Imipenem',35,65,75],
+    ['A. baumannii — Imipenem',72,87,94],
+    ['P. aeruginosa — Imipenem',25,37,51],
+    ['S. aureus — MRSA',     30,48,87],
+    ['E. faecium — VRE',     22.4,25.2,44.3],
+    ['E. coli — Ciprofloxacin',75,87,92],
+    ['Kp — Pip-Tazo',        58,72,82],
+  ];
+  const t=document.getElementById('settingMatrix');
+  let html='<thead><tr><th style="text-align:left">Pathogen — Antibiotic</th><th>OPD</th><th>Ward</th><th>ICU</th></tr></thead><tbody>';
+  rows.forEach(([label,...vals])=>{
+    html+=`<tr><td class="hm-row-label">${label}</td>`;
+    vals.forEach(v=>{ const c=hmColor(v); html+=`<td style="background:${c.bg};color:${c.text}" title="${v}%">${c.label}</td>`; });
+    html+='</tr>';
+  });
+  t.innerHTML=html+'</tbody>';
+})();
+
+// ======================================================================
+// VELOCITY & FORECAST TAB
+// ======================================================================
+const VEL_PATHOGENS = [
+  {name:'E. coli (Imipenem)',  vals:[18.6,27.3,36.6,28.0,35.9,34.0,37.3,42.4], color:'#e74c3c'},
+  {name:'K. pneumoniae (Imipenem)',vals:[41.5,48.2,54.3,55.0,56.8,58.0,64.4,68.8], color:'#e67e22'},
+  {name:'A. baumannii (Carbapenem)',vals:[77.3,80.0,83.0,88.5,87.5,87.8,88.0,91.0], color:'#8e44ad'},
+  {name:'P. aeruginosa (Imipenem)', vals:[26.4,null,null,35.0,35.0,36.0,38.5,43.1], color:'#2980b9'},
+  {name:'MRSA %',               vals:[31.9,40.4,42.1,41.1,38.8,45.3,48.4,50.1], color:'#27ae60'},
+];
+
+// YoY changes (2018-2024 = indices 1-7)
+const velYears = [2018,2019,2020,2021,2022,2023,2024];
+const velLeg=document.getElementById('velocity-legend');
+const velDs = VEL_PATHOGENS.map(p=>{
+  const yoy=[];
+  for(let i=1;i<8;i++){
+    const curr=p.vals[i], prev=p.vals[i-1];
+    yoy.push(curr!==null&&prev!==null?+(curr-prev).toFixed(1):null);
+  }
+  const el=document.createElement('div');el.className='legend-item';
+  el.innerHTML=`<div class="legend-dot" style="background:${p.color}"></div><span>${p.name}</span>`;
+  velLeg.appendChild(el);
+  return mkDS(p.name,yoy,p.color);
+});
+new Chart(document.getElementById('velocityChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:velYears,datasets:velDs},
+  options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a3a5c',padding:9,callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: ${c.raw>0?'+':''}${c.raw} pp`:'N/A'}}},
+    scales:{x:{grid:{display:false}},y:{title:{display:true,text:'YoY change (percentage points)',font:{size:10}},ticks:{callback:v=>(v>0?'+':'')+v+' pp'}}}}
+});
+
+// Cumulative chart
+new Chart(document.getElementById('cumulativeChart').getContext('2d'),{
+  type:'line',
+  data:{labels:YEARS,datasets:VEL_PATHOGENS.map(p=>{
+    const cumVals=p.vals.map((v,i)=>v!==null?+(v-p.vals[0]).toFixed(1):null);
+    return {...mkDS(p.name,cumVals,p.color),fill:false};
+  })},
+  options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a3a5c',padding:9,callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: +${c.raw} pp since 2017`:'N/A'}}},
+    scales:{x:{grid:{display:false}},y:{title:{display:true,text:'Cumulative gain in resistance (pp)',font:{size:10}}}}}
+});
+
+// Forecast chart (simple linear regression, exclude 2020)
+function linearProject(vals, years, projectYears) {
+  const pairs=years.map((y,i)=>({x:y,y:vals[i]})).filter(p=>p.y!==null&&p.x!==2020);
+  const n=pairs.length;
+  const sumX=pairs.reduce((s,p)=>s+p.x,0);
+  const sumY=pairs.reduce((s,p)=>s+p.y,0);
+  const sumXY=pairs.reduce((s,p)=>s+p.x*p.y,0);
+  const sumX2=pairs.reduce((s,p)=>s+p.x*p.x,0);
+  const slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);
+  const intercept=(sumY-slope*sumX)/n;
+  return projectYears.map(y=>Math.min(+((slope*y+intercept).toFixed(1)),99));
+}
+const projYears=[2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027];
+const projDs=VEL_PATHOGENS.map(p=>{
+  const hist=p.vals.concat([null,null,null]);
+  const proj=linearProject(p.vals,YEARS,projYears);
+  const projected=[...Array(8).fill(null),...proj.slice(8)];
+  return [
+    {...mkDS(p.name,hist,p.color),hidden:false},
+    {...mkDS(p.name+' (proj.)',projected,p.color,true),pointRadius:4,borderDash:[6,4]}
+  ];
+}).flat();
+new Chart(document.getElementById('forecastChart').getContext('2d'),{
+  type:'line',
+  data:{labels:projYears,datasets:projDs},
+  options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a3a5c',padding:9,callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: ${c.raw}%`:'N/A'}}},
+    scales:{x:{grid:{display:false}},y:{min:0,max:100,ticks:{callback:v=>v+'%'}}}}
+});
+
+// Leaderboard
+const leaderData=[
+  {label:'K. pneumoniae — Imipenem',from:41.5,to:68.8,color:'#e67e22'},
+  {label:'E. coli — Imipenem',from:18.6,to:42.4,color:'#e74c3c'},
+  {label:'E. coli — Pip-Tazo',from:43.2,to:58.7,color:'#e74c3c'},
+  {label:'K. pneumoniae — Pip-Tazo',from:57.4,to:74.0,color:'#e67e22'},
+  {label:'MRSA Rate',from:31.9,to:50.1,color:'#27ae60'},
+  {label:'P. aeruginosa — Imipenem',from:26.4,to:43.1,color:'#2980b9'},
+  {label:'A. baumannii — Carbapenem',from:77.3,to:91.0,color:'#8e44ad'},
+  {label:'E. coli — Ciprofloxacin',from:80.8,to:89.4,color:'#e74c3c'},
+  {label:'VRE (E. faecium)',from:23.7,to:34.2,color:'#16a085'},
+  {label:'K. pneumoniae — Amikacin',from:51.1,to:60.1,color:'#e67e22'},
+].map(d=>({...d,gain:+(d.to-d.from).toFixed(1)})).sort((a,b)=>b.gain-a.gain);
+
+const lb=document.getElementById('velocityLeaderboard');
+lb.innerHTML=leaderData.map((d,i)=>`
+  <div style="background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 2px 6px rgba(0,0,0,0.07);display:flex;align-items:center;gap:10px">
+    <div style="font-size:1.1rem;font-weight:900;color:${i<3?'#c0392b':'#6b7280'};width:24px;text-align:center">${i+1}</div>
+    <div style="flex:1">
+      <div style="font-size:0.82rem;font-weight:700;color:${d.color}">${d.label}</div>
+      <div style="font-size:0.72rem;color:#6b7280">${d.from}% → ${d.to}%</div>
+    </div>
+    <div style="font-size:1.1rem;font-weight:800;color:#c0392b">+${d.gain} pp</div>
+  </div>`).join('');
+
+// Forecast table
+const forecastTableData=[
+  {label:'E. coli — Imipenem', baseline:18.6, current:42.4},
+  {label:'K. pneumoniae — Imipenem', baseline:41.5, current:68.8},
+  {label:'A. baumannii — Carbapenem', baseline:77.3, current:91.0},
+  {label:'P. aeruginosa — Imipenem', baseline:26.4, current:43.1},
+  {label:'MRSA Rate', baseline:31.9, current:50.1},
+  {label:'E. coli — Ciprofloxacin', baseline:80.8, current:89.4},
+  {label:'K. pneumoniae — Pip-Tazo', baseline:57.4, current:74.0},
+  {label:'VRE (E. faecium)', baseline:23.7, current:34.2},
+];
+document.getElementById('forecastTableBody').innerHTML=forecastTableData.map(d=>{
+  const chg=+(d.current-d.baseline).toFixed(1);
+  const rate=+(chg/7).toFixed(2);
+  const p2027=Math.min(+(d.current+rate*3).toFixed(1),99);
+  const p2030=Math.min(+(d.current+rate*6).toFixed(1),99);
+  const rowColor=chg>20?'background:#fff5f5':chg>10?'background:#fffbeb':'';
+  return `<tr style="${rowColor}">
+    <td><strong>${d.label}</strong></td>
+    <td>${d.baseline}%</td>
+    <td><span class="badge ${d.current>=80?'badge-red':d.current>=50?'badge-orange':'badge-yellow'}">${d.current}%</span></td>
+    <td><span style="color:#c0392b;font-weight:700">+${chg} pp</span></td>
+    <td>${rate} pp/yr</td>
+    <td><em>${p2027}%</em></td>
+    <td><strong style="color:${p2030>=80?'#c0392b':p2030>=60?'#e67e22':'#f59e0b'}">${p2030}%</strong></td>
+  </tr>`;
+}).join('');
+
+// ======================================================================
+// RADAR CHART (Pathogen Explorer)
+// ======================================================================
+let detailRadarChart = null;
+const RADAR_LABELS_MAP = {
+  'E. coli':      {labels:['Imipenem','Meropenem','Pip-Tazo','Cefotaxime','Ciprofloxacin','Amikacin','Colistin'], vals:[42.4,37.1,58.7,84.1,89.4,27.5,0.5]},
+  'K. pneumoniae':{labels:['Imipenem','Meropenem','Pip-Tazo','Cefotaxime','Ciprofloxacin','Amikacin','Colistin'], vals:[68.8,64.9,74.0,79.7,79.6,60.1,3.9]},
+  'A. baumannii': {labels:['Imipenem','Meropenem','Minocycline','Colistin'], vals:[91.6,91.0,29.8,2.6]},
+  'P. aeruginosa':{labels:['Imipenem','Meropenem','Pip-Tazo','Ceftazidime','Ciprofloxacin','Amikacin','Colistin'], vals:[43.1,38.0,30.7,35.8,43.0,26.7,3.0]},
+  'S. aureus (MRSA)':{labels:['MRSA (Oxacillin)','Erythromycin','Ciprofloxacin','Clindamycin','Linezolid','Vancomycin'], vals:[50.1,55.0,48.0,38.0,1.0,0.0]},
+};
+
+function updateDetailRadar(pathogenName, color) {
+  const key = Object.keys(RADAR_LABELS_MAP).find(k => pathogenName.startsWith(k.split(' ')[0]) || pathogenName.includes(k));
+  const rData = RADAR_LABELS_MAP[pathogenName] || RADAR_LABELS_MAP[key];
+  if (!rData) return;
+  if (detailRadarChart) detailRadarChart.destroy();
+  detailRadarChart = new Chart(document.getElementById('detailRadarChart').getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: rData.labels,
+      datasets: [{
+        label: 'Resistance % (2024)',
+        data: rData.vals,
+        borderColor: color,
+        backgroundColor: color + '30',
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}% resistant`}} },
+      scales: {
+        r: {
+          min:0, max:100,
+          ticks: { stepSize:25, font:{size:9}, callback:v=>v+'%' },
+          pointLabels: { font:{size:10} },
+          grid: { color:'#e5e7eb' }
+        }
+      }
+    }
+  });
+}
+
+// Patch selectPathogen to also update radar
+const _origSelectPathogen = selectPathogen;
+function selectPathogen(idx, cardEl) {
+  _origSelectPathogen(idx, cardEl);
+  const p = PATHOGENS[idx];
+  updateDetailRadar(p.name, p.color);
+}
+
+// ======================================================================
+// FUNGAL AMR TAB
+// ======================================================================
+const FUNGAL_YEARS = [2017,2018,2019,2020,2021,2022,2023,2024];
+const FUNGAL_DATA = {
+  'C. tropicalis (Fluconazole)': { vals:[42,45,48,50,52,55,57,60], color:'#f59e0b' },
+  'C. glabrata (Fluconazole)':   { vals:[15,17,19,21,23,26,28,30], color:'#8b5cf6' },
+  'C. albicans (Fluconazole)':   { vals:[5,5,6,7,7,8,9,10],        color:'#10b981' },
+  'C. auris (Fluconazole)':      { vals:[null,null,null,88,90,90,91,93], color:'#ef4444' },
+};
+
+// Candida distribution donut
+new Chart(document.getElementById('candDistChart').getContext('2d'), {
+  type:'doughnut',
+  data:{
+    labels:['C. tropicalis','C. albicans','C. glabrata','C. parapsilosis','C. auris','Others'],
+    datasets:[{data:[35,28,12,10,5,10],backgroundColor:['#f59e0b','#10b981','#8b5cf6','#3b82f6','#ef4444','#9ca3af'],borderWidth:2,borderColor:'#fff'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},padding:6}},tooltip:{callbacks:{label:c=>` ${c.label}: ~${c.raw}% of candidemia`}}}}
+});
+
+// Fluconazole resistance trend
+const fLeg = document.getElementById('fungal-legend');
+const fungalDSets = Object.entries(FUNGAL_DATA).map(([name,d])=>{
+  const div=document.createElement('div'); div.className='legend-item';
+  div.innerHTML=`<div class="legend-dot" style="background:${d.color}"></div><span>${name}</span>`;
+  fLeg.appendChild(div);
+  return mkDS(name, d.vals, d.color);
+});
+new Chart(document.getElementById('fungalTrendChart').getContext('2d'), {
+  type:'line',
+  data:{labels:FUNGAL_YEARS, datasets:fungalDSets},
+  options:baseOpts(100,'Fluconazole Resistance (%)')
+});
+
+// Caspofungin chart
+new Chart(document.getElementById('caspoChart').getContext('2d'), {
+  type:'line',
+  data:{labels:FUNGAL_YEARS, datasets:[
+    mkDS('C. tropicalis (Caspofungin R%)',[12,14,16,17,19,21,23,25],'#f59e0b'),
+    mkDS('C. auris (Caspofungin R%)',     [null,null,null,12,13,14,15,16],'#ef4444'),
+    mkDS('C. albicans (Caspofungin R%)',  [1,1,1,2,2,2,2,3],'#10b981'),
+  ]},
+  options:{...baseOpts(40,'Resistance (%)'),scales:{x:{grid:{display:false}},y:{min:0,max:40,title:{display:true,text:'Resistance (%)',font:{size:10}},ticks:{callback:v=>v+'%'}}}}
+});
+
+// Antifungal bar chart
+new Chart(document.getElementById('antifungalBarChart').getContext('2d'), {
+  type:'bar',
+  data:{
+    labels:['C. tropicalis','C. glabrata','C. albicans','C. parapsilosis','C. auris'],
+    datasets:[
+      {label:'Fluconazole R%',  data:[60,30,10,8,93], backgroundColor:'#f59e0bcc',borderColor:'#f59e0b',borderWidth:1,borderRadius:3},
+      {label:'Caspofungin R%',  data:[25,5,3,2,15],   backgroundColor:'#8b5cf6cc',borderColor:'#8b5cf6',borderWidth:1,borderRadius:3},
+      {label:'Amphotericin R%', data:[5,3,2,2,8],     backgroundColor:'#10b981cc',borderColor:'#10b981',borderWidth:1,borderRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}% resistant`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'}}}
+  }
+});
+
+// ======================================================================
+// STEWARDSHIP TAB
+// ======================================================================
+const SCORECARD_DATA = {
+  "E. coli": { color:'#e74c3c', drugs:[
+    {drug:'Colistin',val:0.5},{drug:'Amikacin',val:27.5},{drug:'Meropenem',val:37.1},
+    {drug:'Imipenem',val:42.4},{drug:'Pip-Tazo',val:58.7},{drug:'Cefotaxime',val:84.1},{drug:'Ciprofloxacin',val:89.4}
+  ]},
+  "K. pneumoniae": { color:'#e67e22', drugs:[
+    {drug:'Colistin',val:3.9},{drug:'Amikacin',val:60.1},{drug:'Meropenem',val:64.9},
+    {drug:'Imipenem',val:68.8},{drug:'Pip-Tazo',val:74.0},{drug:'Cefotaxime',val:79.7},{drug:'Ciprofloxacin',val:79.6}
+  ]},
+  "A. baumannii": { color:'#8e44ad', drugs:[
+    {drug:'Colistin',val:2.6},{drug:'Minocycline',val:29.8},{drug:'Meropenem',val:91.0},{drug:'Imipenem',val:91.6}
+  ]},
+  "P. aeruginosa": { color:'#2980b9', drugs:[
+    {drug:'Colistin',val:3.0},{drug:'Amikacin',val:26.7},{drug:'Pip-Tazo',val:30.7},
+    {drug:'Ceftazidime',val:35.8},{drug:'Meropenem',val:38.0},{drug:'Imipenem',val:43.1},{drug:'Ciprofloxacin',val:43.0}
+  ]},
+  "S. aureus": { color:'#27ae60', drugs:[
+    {drug:'Vancomycin',val:0.0},{drug:'Linezolid',val:1.0},{drug:'Clindamycin',val:38.0},
+    {drug:'Ciprofloxacin',val:48.0},{drug:'MRSA (Oxacillin)',val:50.1},{drug:'Erythromycin',val:55.0}
+  ]},
+  "Candida (Fluconazole)": { color:'#f59e0b', drugs:[
+    {drug:'C. albicans',val:10},{drug:'C. parapsilosis',val:8},{drug:'C. glabrata',val:30},
+    {drug:'C. tropicalis',val:60},{drug:'C. auris',val:93}
+  ]},
+};
+
+function scIcon(v) { return v<20?'🟢':v<50?'🟡':v<75?'🟠':'🔴'; }
+function scColor(v){ return v<20?'#27ae60':v<50?'#f59e0b':v<75?'#e67e22':'#c0392b'; }
+
+function buildScorecard(){
+  const grid=document.getElementById('scorecardGrid');
+  grid.innerHTML='';
+  Object.entries(SCORECARD_DATA).forEach(([pathogen,{color,drugs}])=>{
+    const card=document.createElement('div');
+    card.style.cssText=`background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:3px solid ${color}`;
+    let html=`<div style="font-size:0.85rem;font-weight:700;margin-bottom:8px;color:${color}">${pathogen}</div>`;
+    [...drugs].sort((a,b)=>a.val-b.val).forEach(d=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:0.78rem">
+        <span>${scIcon(d.val)} ${d.drug}</span>
+        <span style="font-weight:700;color:${scColor(d.val)}">${d.val}%</span>
+      </div>`;
+    });
+    card.innerHTML=html;
+    grid.appendChild(card);
+  });
+}
+
+function buildSyndromeGuide(){
+  const syndromes=[
+    { name:'🩸 Sepsis / Bloodstream (BSI)', pathogens:'E. coli, K. pneumoniae, S. aureus, A. baumannii',
+      active:'Colistin (GN), Vancomycin/Linezolid (GP); Amikacin as combination for E. coli',
+      avoid:'Cephalosporins, Ciprofloxacin, Pip-Tazo (unreliable for K. pneumoniae ≥74% R)',
+      note:'80% of K. pneumoniae BSIs carbapenem-resistant in ICU settings (2023)', border:'#c0392b' },
+    { name:'🧪 UTI (Hospital-acquired / ICU)', pathogens:'E. coli (82% of UTI), K. pneumoniae, Enterococcus',
+      active:'Amikacin (IV; E. coli ~28% R), Colistin (very last resort); Fosfomycin/Nitrofurantoin for lower UTI*',
+      avoid:'Ciprofloxacin (89% E. coli R), Cefotaxime (84%), Pip-Tazo (59%)',
+      note:'*Fosfomycin/Nitrofurantoin not tracked by AMRSN; generally preserved for uncomplicated lower UTI', border:'#2980b9' },
+    { name:'🫁 VAP / Hospital Pneumonia (ICU)', pathogens:'A. baumannii, P. aeruginosa predominant',
+      active:'Colistin (only reliable option for A. baumannii); Amikacin + combination for P. aeruginosa',
+      avoid:'All carbapenems for A. baumannii (91% resistant); Ciprofloxacin for P. aeruginosa (~43% R)',
+      note:'A. baumannii essentially pan-resistant — colistin-based regimens only; minocycline as adjunct', border:'#8e44ad' },
+    { name:'🦠 Skin & Soft Tissue / Wound (S. aureus)', pathogens:'S. aureus (50% MRSA in tertiary hospitals)',
+      active:'Vancomycin (0% VRSA in India), Linezolid (<1% R); Clindamycin if susceptible (38% R)',
+      avoid:'Beta-lactams if MRSA suspected; Erythromycin (55% R in S. aureus)',
+      note:'VRSA has never been detected in the ICMR AMRSN network — vancomycin remains fully reliable', border:'#27ae60' },
+    { name:'🧫 Candidemia / Invasive Fungal', pathogens:'C. tropicalis (dominant), C. albicans, C. auris (emerging)',
+      active:'Echinocandins (caspofungin) first-line empirically; Amphotericin B for C. auris or failed echinocandin',
+      avoid:'Empiric fluconazole (C. tropicalis ~60% R, C. auris >90% R); assume resistant until proven otherwise',
+      note:'C. albicans remains susceptible to fluconazole (~10% R) — species ID crucial before de-escalating', border:'#f59e0b' },
+    { name:'🌡️ Typhoid / Enteric Fever', pathogens:'Salmonella Typhi (typhoidal), Salmonella spp.',
+      active:'Azithromycin (mild-moderate); Ceftriaxone (IV severe, <5% resistant); Meropenem (last resort)',
+      avoid:'Ciprofloxacin (~90%+ nalidixic acid R, fluoroquinolone non-susceptible); Ampicillin, Co-trimoxazole (MDR Typhi)',
+      note:'MDR Typhi declining with conjugate vaccine rollout; XDR Typhi (ceftriaxone R) remains rare but monitored', border:'#16a085' },
+  ];
+  const guide=document.getElementById('syndromeGuide');
+  guide.innerHTML=syndromes.map(s=>`
+    <div style="background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-left:3px solid ${s.border}">
+      <div style="font-size:0.87rem;font-weight:700;margin-bottom:6px">${s.name}</div>
+      <div style="font-size:0.73rem;color:var(--muted);margin-bottom:5px">Pathogens: <em>${s.pathogens}</em></div>
+      <div style="font-size:0.76rem;margin-bottom:3px"><span style="color:#27ae60;font-weight:600">✅ Active options: </span>${s.active}</div>
+      <div style="font-size:0.76rem;margin-bottom:4px"><span style="color:#c0392b;font-weight:600">❌ Avoid empirically: </span>${s.avoid}</div>
+      <div style="font-size:0.71rem;color:#6b7280;font-style:italic;border-top:1px solid #f3f4f6;padding-top:5px;margin-top:4px">💡 ${s.note}</div>
+    </div>`).join('');
+}
+
+// Usability chart
+new Chart(document.getElementById('usabilityChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['Colistin','Amikacin','Meropenem','Imipenem','Pip-Tazo','Cefotaxime','Ciprofloxacin'],
+    datasets:[
+      {label:'E. coli R%',       data:[0.5,27.5,37.1,42.4,58.7,84.1,89.4], backgroundColor:'#e74c3ccc',borderColor:'#e74c3c',borderWidth:1,borderRadius:3},
+      {label:'K. pneumoniae R%', data:[3.9,60.1,64.9,68.8,74.0,79.7,79.6], backgroundColor:'#e67e22cc',borderColor:'#e67e22',borderWidth:1,borderRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}% resistant`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'Resistance % (2024)',font:{size:10}}}}
+  }
+});
+
+// Last resort chart
+new Chart(document.getElementById('lastResortChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['Colistin\n(E. coli)','Colistin\n(K. pneu)','Colistin\n(A. bau)','Colistin\n(P. aer)','Vancomycin\n(S. aureus)','Linezolid\n(S. aureus)','Minocycline\n(A. bau)'],
+    datasets:[{
+      label:'Resistance % (2024)',
+      data:[0.5,3.9,2.6,3.0,0.0,1.0,29.8],
+      backgroundColor:[0.5,3.9,2.6,3.0,0.0,1.0,29.8].map(v=>v<10?'#27ae60cc':'#f59e0bcc'),
+      borderColor:[0.5,3.9,2.6,3.0,0.0,1.0,29.8].map(v=>v<10?'#27ae60':'#f59e0b'),
+      borderWidth:1,borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% resistant (2024)`}}},
+    scales:{x:{grid:{display:false}},y:{max:40,ticks:{callback:v=>v+'%'},title:{display:true,text:'Resistance %',font:{size:10}}}}
+  }
+});
+
+// Lost antibiotics chart
+const lostPairs=[
+  {label:'K.pneu — Imipenem',  val:+(68.8-41.5).toFixed(1), color:'#e67e22'},
+  {label:'E.coli — Imipenem',  val:+(42.4-18.6).toFixed(1), color:'#e74c3c'},
+  {label:'K.pneu — Pip-Tazo', val:+(74.0-57.4).toFixed(1), color:'#e67e22'},
+  {label:'E.coli — Pip-Tazo', val:+(58.7-43.2).toFixed(1), color:'#e74c3c'},
+  {label:'MRSA Rate',          val:+(50.1-31.9).toFixed(1), color:'#27ae60'},
+  {label:'P.aer — Imipenem',  val:+(43.1-26.4).toFixed(1), color:'#2980b9'},
+  {label:'A.bau — Meropenem', val:+(91.0-81.3).toFixed(1), color:'#8e44ad'},
+  {label:'K.pneu — Amikacin', val:+(60.1-51.1).toFixed(1), color:'#e67e22'},
+  {label:'E.coli — Cipro',    val:+(89.4-80.8).toFixed(1), color:'#e74c3c'},
+  {label:'E.coli — Amikacin', val:+(27.5-20.8).toFixed(1), color:'#e74c3c'},
+].sort((a,b)=>b.val-a.val);
+
+new Chart(document.getElementById('lostAbxChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:lostPairs.map(p=>p.label),datasets:[{label:'Resistance increase (pp)',data:lostPairs.map(p=>p.val),backgroundColor:lostPairs.map(p=>p.color+'bb'),borderColor:lostPairs.map(p=>p.color),borderWidth:1,borderRadius:4}]},
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` +${c.raw} percentage points since 2017`}}},
+    scales:{x:{title:{display:true,text:'Increase in resistance % (2017 → 2024)',font:{size:10}}},y:{grid:{display:false}}}
+  }
+});
+
+buildScorecard();
+buildSyndromeGuide();
+
+// ======================================================================
+// SITE EXPLORER
+// ======================================================================
+const SITES = [
+  { id:'AIIMS_DEL', name:'AIIMS Delhi',    fullName:'All India Institute of Medical Sciences',         city:'New Delhi',  state:'Delhi',         region:'North',     lat:28.57,lon:77.21, role:'Nodal — Typhoidal Salmonella',           abau_cr:97.3, abau_n:149, paer_cr:56.3, paer_n:142, iso_share:14.1 },
+  { id:'PGIMER',    name:'PGIMER',         fullName:'Post Graduate Institute of Medical Education & Research', city:'Chandigarh', state:'Chandigarh UT', region:'North', lat:30.76,lon:76.78, role:'Nodal — Enterobacterales, Fungal', abau_cr:100,  abau_n:25,  paer_cr:44.7, paer_n:38,  iso_share:5.2  },
+  { id:'CMC',       name:'CMC Vellore',    fullName:'Christian Medical College',                       city:'Vellore',    state:'Tamil Nadu',    region:'South',     lat:12.93,lon:79.14, role:'Nodal — NFGNB, Diarrheal, S. pneumoniae',abau_cr:88.3, abau_n:60,  paer_cr:100,  paer_n:56,  iso_share:4.9  },
+  { id:'JIPMER',    name:'JIPMER',         fullName:'Jawaharlal Institute of Post Graduate Medical Education & Research', city:'Puducherry', state:'Puducherry', region:'South', lat:11.94,lon:79.81, role:'Nodal — Staphylococci, Enterococci', abau_cr:50.0, abau_n:56, paer_cr:43.6, paer_n:55, iso_share:5.2 },
+  { id:'AFMC',      name:'AFMC Pune',      fullName:'Armed Forces Medical College',                    city:'Pune',       state:'Maharashtra',   region:'West',      lat:18.52,lon:73.85, role:'Regional Centre',                        abau_cr:null, abau_n:null,paer_cr:28.6, paer_n:14,  iso_share:2.8  },
+  { id:'AIIMS_BH',  name:'AIIMS Bhopal',   fullName:'AIIMS Bhopal',                                    city:'Bhopal',     state:'Madhya Pradesh',region:'Central',   lat:23.21,lon:77.45, role:'Regional Centre',                        abau_cr:null, abau_n:null,paer_cr:null, paer_n:null,iso_share:null },
+  { id:'AIIMS_J',   name:'AIIMS Jodhpur',  fullName:'AIIMS Jodhpur',                                   city:'Jodhpur',    state:'Rajasthan',     region:'North',     lat:26.27,lon:73.01, role:'Regional Centre',                        abau_cr:null, abau_n:null,paer_cr:null, paer_n:null,iso_share:null },
+  { id:'APOLLO',    name:'Apollo Chennai', fullName:'Apollo Hospitals',                                 city:'Chennai',    state:'Tamil Nadu',    region:'South',     lat:13.07,lon:80.26, role:'Regional Centre',                        abau_cr:63.6, abau_n:11,  paer_cr:37.5, paer_n:16,  iso_share:3.0  },
+  { id:'ASSAM_MC',  name:'Assam MC',       fullName:'Assam Medical College & Hospital',                 city:'Dibrugarh',  state:'Assam',         region:'Northeast', lat:27.48,lon:94.91, role:'Regional Centre',                        abau_cr:69.7, abau_n:33,  paer_cr:14.6, paer_n:41,  iso_share:2.1  },
+  { id:'IPGIMER',   name:'IPGIMER Kolkata',fullName:'IPGIMER Kolkata (SSKM Hospital)',                  city:'Kolkata',    state:'West Bengal',   region:'East',      lat:22.57,lon:88.36, role:'Regional Centre',                        abau_cr:96.9, abau_n:64,  paer_cr:48.5, paer_n:66,  iso_share:3.5  },
+  { id:'KGMU',      name:'KGMU Lucknow',   fullName:"King George's Medical University",                 city:'Lucknow',    state:'Uttar Pradesh', region:'North',     lat:26.90,lon:80.96, role:'Regional Centre',                        abau_cr:100,  abau_n:35,  paer_cr:63.2, paer_n:19,  iso_share:4.1  },
+  { id:'KMC',       name:'KMC Manipal',    fullName:'Kasturba Medical College',                         city:'Manipal',    state:'Karnataka',     region:'South',     lat:13.35,lon:74.79, role:'Regional Centre',                        abau_cr:87.0, abau_n:46,  paer_cr:25.9, paer_n:27,  iso_share:2.6  },
+  { id:'LTMMC',     name:'Sion Hospital',  fullName:'LTMMC & GH (Sion Hospital)',                       city:'Mumbai',     state:'Maharashtra',   region:'West',      lat:19.04,lon:72.85, role:'Regional Centre',                        abau_cr:93.6, abau_n:47,  paer_cr:22.5, paer_n:40,  iso_share:3.1  },
+  { id:'MGIMS',     name:'MGIMS Wardha',   fullName:'Mahatma Gandhi Institute of Medical Sciences',     city:'Wardha',     state:'Maharashtra',   region:'Central',   lat:20.74,lon:78.60, role:'Regional Centre',                        abau_cr:76.9, abau_n:39,  paer_cr:22.5, paer_n:40,  iso_share:2.5  },
+  { id:'NIMS',      name:'NIMS Hyderabad', fullName:"Nizam's Institute of Medical Sciences",            city:'Hyderabad',  state:'Telangana',     region:'South',     lat:17.41,lon:78.45, role:'Regional Centre',                        abau_cr:61.4, abau_n:44,  paer_cr:17.0, paer_n:47,  iso_share:2.3  },
+  { id:'HINDUJA',   name:'PD Hinduja',     fullName:'P.D. Hinduja National Hospital',                   city:'Mumbai',     state:'Maharashtra',   region:'West',      lat:19.07,lon:72.97, role:'Regional Centre',                        abau_cr:71.4, abau_n:7,   paer_cr:18.4, paer_n:49,  iso_share:2.8  },
+  { id:'RIMS',      name:'RIMS Imphal',    fullName:'Regional Institute of Medical Sciences',           city:'Imphal',     state:'Manipur',       region:'Northeast', lat:24.81,lon:93.95, role:'Regional Centre',                        abau_cr:77.5, abau_n:40,  paer_cr:50.0, paer_n:40,  iso_share:1.2  },
+  { id:'SGRH',      name:'Sir Ganga Ram',  fullName:'Sir Ganga Ram Hospital',                           city:'New Delhi',  state:'Delhi',         region:'North',     lat:28.66,lon:77.19, role:'Regional Centre',                        abau_cr:100,  abau_n:44,  paer_cr:58.6, paer_n:29,  iso_share:5.7  },
+  { id:'TMC',       name:'Tata Medical',   fullName:'Tata Medical Center',                              city:'Kolkata',    state:'West Bengal',   region:'East',      lat:22.52,lon:88.51, role:'Regional Centre',                        abau_cr:100,  abau_n:5,   paer_cr:57.1, paer_n:7,   iso_share:1.9  },
+  { id:'SKIMS',     name:'SKIMS Srinagar', fullName:'Sher-i-Kashmir Institute of Medical Sciences',    city:'Srinagar',   state:'J&K',           region:'North',     lat:34.09,lon:74.80, role:'Regional Centre',                        abau_cr:87.9, abau_n:33,  paer_cr:14.8, paer_n:27,  iso_share:3.5  },
+];
+
+const REGION_COLORS = { North:'#3b82f6', South:'#10b981', East:'#f59e0b', West:'#8b5cf6', Central:'#f97316', Northeast:'#ec4899' };
+const RC_MRSA_2022 = [
+  {rc:'RC18',mrsa:86.2},{rc:'RC20',mrsa:83.5},{rc:'RC16',mrsa:66.7},{rc:'RC19',mrsa:62.9},
+  {rc:'RC13',mrsa:56.4},{rc:'RC17',mrsa:56.4},{rc:'RC11',mrsa:54.0},{rc:'RC6',mrsa:53.3},
+  {rc:'RC9',mrsa:46.5},{rc:'RC15',mrsa:48.6},{rc:'RC14',mrsa:38.9},{rc:'RC10',mrsa:38.6},
+  {rc:'RC3',mrsa:41.5},{rc:'RC1',mrsa:42.1},{rc:'RC5',mrsa:34.5},{rc:'RC2',mrsa:32.7},
+  {rc:'RC8',mrsa:27.2},{rc:'RC4',mrsa:23.8},
+];
+const RC_ISOLATES_2022 = [
+  {rc:'RC4',n:13318},{rc:'RC2',n:11915},{rc:'RC19',n:10202},{rc:'RC1',n:7470},
+  {rc:'RC6',n:6208},{rc:'RC13',n:6103},{rc:'RC15',n:6075},{rc:'RC14',n:5886},
+  {rc:'RC10',n:4353},{rc:'RC3',n:4305},{rc:'RC16',n:3774},{rc:'RC18',n:3296},
+  {rc:'RC20',n:3212},{rc:'RC5',n:3015},{rc:'RC17',n:2972},{rc:'RC9',n:2864},
+  {rc:'RC11',n:2802},{rc:'RC8',n:2661},{rc:'RC7',n:2459},{rc:'RC12',n:2098},{rc:'RC21',n:1259},
+];
+
+// India outline plugin (simplified, canvas-based)
+const INDIA_OUTLINE = [
+  [68.1,23.7],[68.2,22.5],[69.0,22.0],[70.5,22.7],[71.5,22.5],[72.0,22.0],[72.0,20.9],
+  [72.8,19.9],[73.2,19.0],[73.0,17.0],[74.1,15.2],[74.5,14.5],[74.2,13.5],[75.0,11.8],
+  [76.0,10.2],[77.5,8.3],[78.2,8.5],[79.5,9.5],[80.3,10.4],[80.8,11.5],[80.3,13.2],
+  [80.2,14.2],[80.3,16.0],[81.5,17.5],[82.1,19.3],[85.0,19.8],[86.5,20.0],[87.2,21.2],
+  [88.0,21.5],[88.5,22.5],[89.1,22.9],[89.5,23.8],[88.6,26.4],[89.9,27.0],[91.6,26.5],
+  [92.6,26.9],[93.5,26.8],[94.3,27.2],[95.1,27.6],[96.4,28.5],[97.3,28.3],[97.5,29.0],
+  [97.0,29.8],[96.0,30.5],[95.0,30.0],[94.0,29.5],[93.5,28.5],[92.0,27.8],[90.5,27.5],
+  [88.9,27.1],[88.4,26.7],[87.5,27.3],[86.5,27.9],[85.0,27.5],[83.5,28.0],[82.5,27.8],
+  [80.5,29.5],[79.5,30.2],[79.0,31.0],[78.0,31.5],[77.5,32.0],[76.8,33.5],[75.5,33.0],
+  [74.5,34.0],[74.0,34.6],[73.5,34.3],[73.0,33.5],[72.5,34.0],[71.0,34.3],[70.0,33.5],
+  [69.5,33.0],[70.0,31.5],[70.5,30.0],[71.5,29.0],[70.5,28.0],[70.5,27.0],[69.5,26.5],
+  [70.0,25.5],[68.5,25.0],[68.1,23.7],
+];
+
+const indiaPlugin = {
+  id:'indiaOutline',
+  beforeDraw(chart){
+    const {ctx, scales:{x,y}} = chart;
+    const px = lon => x.getPixelForValue(lon);
+    const py = lat => y.getPixelForValue(lat);
+    ctx.save();
+    ctx.beginPath();
+    INDIA_OUTLINE.forEach(([lon,lat],i)=>{ i===0?ctx.moveTo(px(lon),py(lat)):ctx.lineTo(px(lon),py(lat)); });
+    ctx.closePath();
+    ctx.fillStyle='rgba(232,244,232,0.5)';
+    ctx.fill();
+    ctx.strokeStyle='rgba(100,160,100,0.5)';
+    ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+  }
+};
+Chart.register(indiaPlugin);
+
+// Build scatter map
+let selectedSite = null;
+let siteResistChart = null;
+
+const mapDatasets = [...new Set(SITES.map(s=>s.region))].map(region=>{
+  const pts = SITES.filter(s=>s.region===region).map(s=>({
+    x: s.lon, y: s.lat, r: s.iso_share ? Math.max(6, s.iso_share*1.2) : 6,
+    label: s.name, site: s
+  }));
+  return { label:region, data:pts, backgroundColor:REGION_COLORS[region]+'bb', borderColor:REGION_COLORS[region], borderWidth:2, pointStyle:'circle' };
+});
+
+const siteMapChart = new Chart(document.getElementById('siteMapChart').getContext('2d'),{
+  type:'bubble',
+  data:{ datasets: mapDatasets },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ position:'bottom', labels:{font:{size:10},padding:8} },
+      tooltip:{ callbacks:{ label: ctx => {
+        const s = ctx.raw.site;
+        return [`${s.fullName}`, `${s.city}, ${s.state}`, s.abau_cr ? `A.bau CR: ${s.abau_cr}%` : ''];
+      }}}
+    },
+    scales:{
+      x:{ min:67, max:99, title:{display:true,text:'Longitude (°E)',font:{size:9}}, ticks:{font:{size:9}} },
+      y:{ min:6, max:37,  title:{display:true,text:'Latitude (°N)', font:{size:9}}, ticks:{font:{size:9}} }
+    },
+    onClick(evt, elems){ if(elems.length){ selectSite(elems[0].element.$context.raw.site); } }
+  }
+});
+
+function selectSite(site){
+  selectedSite = site;
+  // Update pills
+  document.querySelectorAll('.site-pill').forEach(p=>p.classList.remove('active'));
+  const pill = document.getElementById('pill_'+site.id);
+  if(pill){ pill.classList.add('active'); pill.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  // Update detail
+  document.getElementById('siteDetailName').textContent = site.fullName;
+  document.getElementById('siteDetailSub').textContent = `${site.city}, ${site.state} · ${site.region} India`;
+  const regCls = { North:'reg-north',South:'reg-south',East:'reg-east',West:'reg-west',Central:'reg-central',Northeast:'reg-northeast' };
+  const abauHtml = site.abau_cr !== null
+    ? `<div style="margin:8px 0;padding:10px 12px;background:${site.abau_cr>=90?'#fde8e8':site.abau_cr>=75?'#fef3e2':'#fef9c3'};border-radius:8px">
+        <strong>A. baumannii carbapenem resistance:</strong> <span style="font-size:1.3rem;font-weight:800;color:${site.abau_cr>=90?'#c0392b':'#e67e22'}">${site.abau_cr}%</span>
+        <div style="font-size:0.74rem;color:#666">n = ${site.abau_n} characterized isolates (2022 molecular table)</div></div>` : '';
+  const paerHtml = site.paer_cr !== null
+    ? `<div style="margin:8px 0;padding:10px 12px;background:${site.paer_cr>=50?'#fef3e2':'#eff6ff'};border-radius:8px">
+        <strong>P. aeruginosa carbapenem resistance:</strong> <span style="font-size:1.3rem;font-weight:800;color:${site.paer_cr>=50?'#e67e22':'#2980b9'}">${site.paer_cr}%</span>
+        <div style="font-size:0.74rem;color:#666">n = ${site.paer_n} characterized isolates (2022 molecular table)</div></div>` : '';
+  document.getElementById('siteDetailBody').innerHTML = `
+    <div style="margin-bottom:8px"><span class="region-badge ${regCls[site.region]||'reg-north'}">${site.region}</span> &nbsp;
+    <span style="font-size:0.75rem;color:var(--muted)">${site.role}</span></div>
+    ${abauHtml}${paerHtml}
+    ${!site.abau_cr && !site.paer_cr ? '<p style="color:var(--muted);font-style:italic">No molecular characterization data available for this centre in published reports.</p>' : ''}
+    <div style="margin-top:8px;font-size:0.75rem;color:#6b7280">
+      ${site.iso_share ? `<strong>Estimated isolate share:</strong> ~${site.iso_share}% of national total (2022)<br>` : ''}
+      <strong>Data source:</strong> ICMR AMRSN Annual Report 2022 — Molecular characterization tables
+    </div>`;
+}
+
+// Build site pills
+const pillGrid = document.getElementById('sitePillGrid');
+SITES.forEach(s=>{
+  const p=document.createElement('div');
+  p.className='site-pill'; p.id='pill_'+s.id;
+  p.innerHTML=`<span class="sp-name">${s.name}</span><span class="sp-city">${s.city}</span>`;
+  p.onclick=()=>selectSite(s);
+  pillGrid.appendChild(p);
+});
+
+// Site resistance comparison chart
+function buildSiteResistChart(metric){
+  const key = metric==='abau' ? 'abau_cr' : 'paer_cr';
+  const nKey = metric==='abau' ? 'abau_n' : 'paer_n';
+  const label = metric==='abau' ? 'A. baumannii CR%' : 'P. aeruginosa CR%';
+  const color = metric==='abau' ? '#8e44ad' : '#2980b9';
+  const sites = SITES.filter(s=>s[key]!==null).sort((a,b)=>b[key]-a[key]);
+  if(siteResistChart) siteResistChart.destroy();
+  siteResistChart = new Chart(document.getElementById('siteResistanceChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: sites.map(s=>`${s.name}\n(${s.city})`),
+      datasets:[{
+        label, data:sites.map(s=>s[key]),
+        backgroundColor: sites.map(s=>(s[key]>=90?'#c0392bcc':s[key]>=75?'#e67e22cc':s[key]>=50?'#f59e0bcc':'#27ae60cc')),
+        borderColor: sites.map(s=>(s[key]>=90?'#c0392b':s[key]>=75?'#e67e22':s[key]>=50?'#f59e0b':'#27ae60')),
+        borderWidth:1, borderRadius:4,
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>{
+          const s=sites[c.dataIndex];
+          return [` CR%: ${c.raw}%`, ` n=${s[nKey]} isolates characterized`, ` ${s.city}, ${s.state}`];
+        }}}
+      },
+      scales:{x:{min:0,max:105,ticks:{callback:v=>v+'%'},title:{display:true,text:'Carbapenem Resistance % (2022 molecular data)',font:{size:10}}},y:{grid:{display:false}}}
+    }
+  });
+}
+buildSiteResistChart('abau');
+
+function switchSiteChart(metric, btn){
+  document.getElementById('siteAbauBtn').classList.remove('active');
+  document.getElementById('sitePaerBtn').classList.remove('active');
+  btn.classList.add('active');
+  buildSiteResistChart(metric);
+}
+
+// RC MRSA chart
+new Chart(document.getElementById('rcMrsaChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels: RC_MRSA_2022.map(r=>r.rc),
+    datasets:[{
+      label:'MRSA as % of S. aureus',
+      data: RC_MRSA_2022.map(r=>r.mrsa),
+      backgroundColor: RC_MRSA_2022.map(r=>r.mrsa>=70?'#c0392bcc':r.mrsa>=50?'#e67e22cc':r.mrsa>=35?'#f59e0bcc':'#27ae60cc'),
+      borderColor: RC_MRSA_2022.map(r=>r.mrsa>=70?'#c0392b':r.mrsa>=50?'#e67e22':r.mrsa>=35?'#f59e0b':'#27ae60'),
+      borderWidth:1, borderRadius:3
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` MRSA: ${c.raw}% of S. aureus`}}},
+    scales:{x:{grid:{display:false}},y:{max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'MRSA % of S. aureus',font:{size:10}}}}
+  }
+});
+
+// RC isolates chart
+new Chart(document.getElementById('rcIsolatesChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels: RC_ISOLATES_2022.map(r=>r.rc),
+    datasets:[{
+      label:'Total Isolates (2022)',
+      data: RC_ISOLATES_2022.map(r=>r.n),
+      backgroundColor:'#1a3a5ccc', borderColor:'#1a3a5c', borderWidth:1, borderRadius:3
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw.toLocaleString()} isolates`}}},
+    scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>(v/1000).toFixed(0)+'k'},title:{display:true,text:'Total isolates',font:{size:10}}}}
+  }
+});
+
+// Network growth chart
+new Chart(document.getElementById('networkGrowthChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['2017','2018','2019','2020','2021','2022','2023','2024'],
+    datasets:[
+      {label:'Active sites', data:[8,10,14,15,21,21,21,21], type:'line', yAxisID:'y1', borderColor:'#c0392b', backgroundColor:'transparent', pointRadius:5, tension:0.3},
+      {label:'Total isolates (k)',data:[45.9,60.5,107.4,65.6,95.7,107.1,99.5,99.0],backgroundColor:'#1a3a5ccc',borderColor:'#1a3a5c',borderWidth:1,borderRadius:3,yAxisID:'y'},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{size:10}}},tooltip:{callbacks:{label:c=>c.yAxisID==='y1'?` ${c.raw} sites active`:` ${c.raw}k isolates`}}},
+    scales:{
+      x:{grid:{display:false}},
+      y:{ticks:{callback:v=>v+'k'},title:{display:true,text:'Isolates (thousands)',font:{size:9}}},
+      y1:{position:'right',min:0,max:25,ticks:{callback:v=>v+' sites'},grid:{display:false},title:{display:true,text:'Sites',font:{size:9}}}
+    }
+  }
+});
+
+// Regional A. baumannii comparison
+const REGIONS = ['North','South','East','West','Central','Northeast'];
+const regAbauAvg = REGIONS.map(r=>{
+  const sites=SITES.filter(s=>s.region===r&&s.abau_cr!==null);
+  if(!sites.length)return null;
+  return +(sites.reduce((s,x)=>s+x.abau_cr,0)/sites.length).toFixed(1);
+});
+new Chart(document.getElementById('regionalAbauChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:REGIONS,
+    datasets:[{
+      label:'Avg A.bau CR% (2022)',
+      data:regAbauAvg,
+      backgroundColor:REGIONS.map(r=>REGION_COLORS[r]+'cc'),
+      borderColor:REGIONS.map(r=>REGION_COLORS[r]),
+      borderWidth:1, borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw!==null?` Avg CR: ${c.raw}%`:' No data'}}},
+    scales:{x:{grid:{display:false}},y:{max:105,ticks:{callback:v=>v+'%'},title:{display:true,text:'Mean A.bau CR% across sites',font:{size:10}}}}
+  }
+});
+
+// Site table
+const regCls2 = {North:'reg-north',South:'reg-south',East:'reg-east',West:'reg-west',Central:'reg-central',Northeast:'reg-northeast'};
+document.getElementById('siteTableBody').innerHTML = SITES.map(s=>`<tr>
+  <td><strong>${s.name}</strong><div style="font-size:0.7rem;color:#6b7280">${s.fullName}</div></td>
+  <td>${s.city}</td>
+  <td>${s.state}</td>
+  <td><span class="region-badge ${regCls2[s.region]||''}">${s.region}</span></td>
+  <td style="font-size:0.75rem">${s.role}</td>
+  <td>${s.abau_cr!==null?`<span class="badge ${s.abau_cr>=90?'badge-red':s.abau_cr>=75?'badge-orange':'badge-yellow'}">${s.abau_cr}%</span>`:'<span class="badge badge-blue">N/A</span>'}</td>
+  <td>${s.paer_cr!==null?`<span class="badge ${s.paer_cr>=50?'badge-orange':s.paer_cr>=30?'badge-yellow':'badge-green'}">${s.paer_cr}%</span>`:'<span class="badge badge-blue">N/A</span>'}</td>
+  <td style="font-size:0.75rem">${s.abau_n!==null?`Abau n=${s.abau_n}`:''}${s.paer_n!==null?`, Paer n=${s.paer_n}`:''}</td>
+</tr>`).join('');
+
+function buildSettingMatrix(){} // already built on load
+function buildVelocityLeaderboard(){} // already built on load
+
+// Matrix antibiotic select initialization
+document.getElementById('matAbx').innerHTML=MATRIX_ROWS.map(r=>`<option>${r}</option>`).join('');
+document.getElementById('matAbx').addEventListener('change', updateMatrixTrend);
+document.getElementById('matPathogen').addEventListener('change', updateMatrixTrend);
+updateMatrixTrend();
+
+// ======================================================================
+// WHO GLASS MODULE
+// ======================================================================
+(function(){
+  const GLASS_YEARS = [2018,2019,2020,2021,2022,2023];
+
+  // Global median resistance data from WHO GLASS reports (BSI isolates)
+  const GLASS = {
+    ecoli_3gc:   [30, 35, 42, 43, 44.8, 45],   // 3rd-gen ceph R
+    ecoli_fq:    [18, 19, 20, 22, 23,   25],    // fluoroquinolone R
+    ecoli_cr:    [5,  6,  7,  8,  9,    10],    // carbapenem R
+    kp_3gc:      [45, 50, 55.2, 55, 57, 58],    // Kp 3GC-R
+    kp_cr:       [6,  7,  8,  9,  10,   11],    // Kp carbapenem-R
+    mrsa:        [33, 34, 35, 36, 37,   38],    // MRSA %
+    abau_cr:     [50, 53, 56, 58, 60,   62],    // Acinetobacter CR
+  };
+
+  // E. coli chart
+  new Chart(document.getElementById('glassEcoliChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:GLASS_YEARS,
+      datasets:[
+        mkDS('3GC-R (E. coli)',  GLASS.ecoli_3gc, '#e74c3c'),
+        mkDS('FQ-R (E. coli)',   GLASS.ecoli_fq,  '#f59e0b'),
+        mkDS('CR (E. coli)',     GLASS.ecoli_cr,  '#8e44ad'),
+      ]
+    },
+    options: baseOpts(80,'Resistance % (Global Median, BSI)')
+  });
+
+  // Klebsiella chart
+  new Chart(document.getElementById('glassKpChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:GLASS_YEARS,
+      datasets:[
+        mkDS('3GC-R (K. pneumoniae)', GLASS.kp_3gc, '#e67e22'),
+        mkDS('CR (K. pneumoniae)',     GLASS.kp_cr,  '#c0392b'),
+      ]
+    },
+    options: baseOpts(80,'Resistance % (Global Median, BSI)')
+  });
+
+  // MRSA + Acinetobacter CR
+  new Chart(document.getElementById('glassMrsaAbauChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:GLASS_YEARS,
+      datasets:[
+        mkDS('MRSA',            GLASS.mrsa,    '#27ae60'),
+        mkDS('Acinetobacter CR',GLASS.abau_cr, '#8e44ad'),
+      ]
+    },
+    options: baseOpts(80,'Resistance % (Global Median, BSI)')
+  });
+
+  // SEAR vs Global bar chart
+  const SEAR_DATA = [
+    {pathogen:'E. coli (3GC-R)',    global:44.8, sear:62},
+    {pathogen:'K. pneumoniae (CR)', global:11,   sear:41.2},
+    {pathogen:'MRSA',               global:38,   sear:44},
+    {pathogen:'Acinetobacter (CR)', global:62,   sear:71},
+    {pathogen:'E. coli (FQ-R)',     global:25,   sear:55},
+  ];
+  new Chart(document.getElementById('glassSearChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:SEAR_DATA.map(d=>d.pathogen),
+      datasets:[
+        {label:'Global Median',    data:SEAR_DATA.map(d=>d.global), backgroundColor:'#2980b9cc', borderColor:'#2980b9', borderWidth:1, borderRadius:4},
+        {label:'SEAR Region',      data:SEAR_DATA.map(d=>d.sear),   backgroundColor:'#e67e22cc', borderColor:'#e67e22', borderWidth:1, borderRadius:4},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:10}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:9}}},
+        y:{max:100,ticks:{callback:v=>v+'%'},title:{display:true,text:'Resistance %',font:{size:10}}}}
+    }
+  });
+
+  // GLASS heatmap table
+  const GLASS_HM = [
+    {drug:'E. coli — 3GC-R',        global:44.8, sear:62,  africa:71, americas:35, europe:22},
+    {drug:'E. coli — Carbapenem-R',  global:10,   sear:15,  africa:12, americas:7,  europe:6},
+    {drug:'E. coli — FQ-R',          global:25,   sear:55,  africa:42, americas:20, europe:16},
+    {drug:'K. pneumoniae — 3GC-R',   global:57,   sear:68,  africa:73, americas:47, europe:38},
+    {drug:'K. pneumoniae — CR',       global:11,   sear:41.2,africa:18, americas:14, europe:28},
+    {drug:'MRSA',                     global:38,   sear:44,  africa:51, americas:34, europe:17},
+    {drug:'Acinetobacter — CR',       global:62,   sear:71,  africa:60, americas:55, europe:45},
+  ];
+  document.getElementById('glassHeatmapBody').innerHTML = GLASS_HM.map(row=>{
+    const cells=[row.global,row.sear,row.africa,row.americas,row.europe];
+    return `<tr>
+      <td class="hm-row-label">${row.drug}</td>
+      ${cells.map(v=>{const c=hmColor(v);return `<td style="background:${c.bg};color:${c.text}">${c.label}</td>`;}).join('')}
+    </tr>`;
+  }).join('');
+})();
+
+// ======================================================================
+// NARS-NET MODULE
+// ======================================================================
+(function(){
+  const NARS_YEARS = [2017,2018,2019,2020,2021,2022,2023];
+
+  // NARS-Net India resistance data (blood isolates unless noted)
+  // Sources: NCDC NARS-Net Annual Reports 2017-2023
+  const NARS = {
+    ecoli_esbl: [82, 86, 83, 84, 83, 82, 82],  // ESBL in blood
+    ecoli_cr:   [28, 30, 32, 33, 35, 35, 40],  // carbapenem-R in blood
+    kp_3gc:     [79, 81, 82, 83, 84, 83, 79],  // 3GC-R in blood
+    kp_cr:      [38, 40, 43, 45, 47, 47, 54],  // carbapenem-R in blood
+    mrsa_all:   [55, 59, 59, 57, 56, 55, 57],  // MRSA all isolates (cefoxitin)
+    mrsa_blood: [60, 65, 66, 63, 62, 63, 66],  // MRSA blood isolates
+    abau_cr:    [82, 84, 85, 86, 87, 86, 88],  // Acinetobacter carbapenem-R
+  };
+
+  // E. coli chart
+  new Chart(document.getElementById('narsEcoliChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:NARS_YEARS,
+      datasets:[
+        mkDS('ESBL-producing E. coli (blood)',  NARS.ecoli_esbl, '#e74c3c'),
+        mkDS('Carbapenem-R E. coli (blood)',    NARS.ecoli_cr,   '#8e44ad'),
+      ]
+    },
+    options: baseOpts(100,'Resistance % (NARS-Net, Blood Isolates)')
+  });
+
+  // Klebsiella chart
+  new Chart(document.getElementById('narsKpChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:NARS_YEARS,
+      datasets:[
+        mkDS('3GC-R Klebsiella spp. (blood)',        NARS.kp_3gc, '#e67e22'),
+        mkDS('Carbapenem-R Klebsiella spp. (blood)', NARS.kp_cr,  '#c0392b'),
+      ]
+    },
+    options: baseOpts(100,'Resistance % (NARS-Net, Blood Isolates)')
+  });
+
+  // MRSA chart
+  new Chart(document.getElementById('narsMrsaChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:NARS_YEARS,
+      datasets:[
+        mkDS('MRSA — All isolates',    NARS.mrsa_all,   '#27ae60'),
+        mkDS('MRSA — Blood isolates',  NARS.mrsa_blood, '#1a3a5c'),
+      ]
+    },
+    options: baseOpts(80,'MRSA % (NARS-Net)')
+  });
+
+  // Acinetobacter CR chart
+  new Chart(document.getElementById('narsAbauChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:NARS_YEARS,
+      datasets:[
+        mkDS('Acinetobacter spp. — Carbapenem-R', NARS.abau_cr, '#8e44ad'),
+      ]
+    },
+    options: baseOpts(100,'CR % (NARS-Net)')
+  });
+
+  // NARS-Net 2023 summary heatmap
+  const NARS_HM = [
+    {pathogen:'E. coli',              esbl:82, cr:40, fq:78, col:4,  special:'Blood; VRSA 0%'},
+    {pathogen:'Klebsiella spp.',      esbl:79, cr:54, fq:75, col:4,  special:'Any carbapenem'},
+    {pathogen:'Acinetobacter spp.',   esbl:null,cr:88,fq:84, col:null,special:'Near pan-R'},
+    {pathogen:'P. aeruginosa',        esbl:null,cr:40, fq:48,col:null,special:'MDR rising'},
+    {pathogen:'S. aureus (MRSA)',     esbl:null,cr:null,fq:null,col:null,special:'MRSA 57%; VRE: 0%'},
+    {pathogen:'Enterococcus spp.',    esbl:null,cr:null,fq:null,col:null,special:'Linezolid R 0.2%'},
+    {pathogen:'Salmonella Typhi',     esbl:null,cr:null,fq:5,  col:null,special:'XDR Typhi emerging'},
+    {pathogen:'Shigella spp.',        esbl:null,cr:null,fq:42, col:null,special:'Amp+Co-trim dual R'},
+    {pathogen:'Vibrio cholerae',      esbl:null,cr:null,fq:null,col:null,special:'Tetracycline 92% R'},
+  ];
+  document.getElementById('narsHeatmapBody').innerHTML = NARS_HM.map(row=>{
+    const fmt=(v)=> v===null ? `<td class="hm-na">N/A</td>` :
+      (()=>{const c=hmColor(v);return `<td style="background:${c.bg};color:${c.text}">${c.label}</td>`;})();
+    return `<tr>
+      <td class="hm-row-label">${row.pathogen}</td>
+      ${fmt(row.esbl)}${fmt(row.cr)}${fmt(row.fq)}${fmt(row.col)}
+      <td style="font-size:0.75rem;color:#374151">${row.special}</td>
+    </tr>`;
+  }).join('');
+})();
+
+// ======================================================================
+// CROSS-SURVEILLANCE COMPARISON MODULE
+// ======================================================================
+(function(){
+  const CMP_YEARS = [2018,2019,2020,2021,2022,2023];
+
+  // Align ICMR AMRSN to 2018-2023 (index 1 to 6 of 2017-2024 array)
+  const ICMR_ecoli_cr = [27.3, 36.6, 28.0, 35.9, 34.0, 37.3];
+  const ICMR_kp_cr    = [48.2, 54.3, 55.0, 56.8, 58.0, 64.4];
+  const ICMR_mrsa     = [40.4, 42.1, 41.1, 38.8, 45.3, 48.4];
+  const ICMR_abau_cr  = [80.0, 83.0, 88.5, 87.5, 87.8, 88.0];
+
+  // NARS-Net (2018-2023, index 1-6)
+  const NARS_ecoli_cr = [30, 32, 33, 35, 35, 40];
+  const NARS_kp_cr    = [40, 43, 45, 47, 47, 54];
+  const NARS_mrsa     = [59, 59, 57, 56, 55, 57];
+  const NARS_abau_cr  = [84, 85, 86, 87, 86, 88];
+
+  // WHO GLASS global medians (2018-2023)
+  const GLASS_ecoli_cr= [5,  6,  7,  8,  9,  10];
+  const GLASS_kp_cr   = [6,  7,  8,  9,  10, 11];
+  const GLASS_mrsa    = [33, 34, 35, 36, 37, 38];
+  const GLASS_abau_cr = [50, 53, 56, 58, 60, 62];
+
+  const NET_STYLES = {
+    icmr:  {color:'#1a3a5c', dash:false},
+    nars:  {color:'#e67e22', dash:false},
+    glass: {color:'#2980b9', dash:[5,4]},
+  };
+
+  function cmpDS(label, data, net) {
+    return {
+      label, data,
+      borderColor: NET_STYLES[net].color,
+      backgroundColor: NET_STYLES[net].color+'18',
+      pointBackgroundColor: NET_STYLES[net].color,
+      pointRadius:4, tension:0.3, fill:false,
+      borderDash: NET_STYLES[net].dash
+    };
+  }
+
+  const cmpOpts = (yMax=100) => ({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'top',labels:{font:{size:10},usePointStyle:true}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}
+    },
+    scales:{
+      x:{grid:{display:false}},
+      y:{max:yMax, min:0, ticks:{callback:v=>v+'%'},
+         title:{display:true,text:'Resistance %',font:{size:10}}}
+    }
+  });
+
+  // E. coli comparison
+  new Chart(document.getElementById('cmpEcoliChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels: CMP_YEARS,
+      datasets:[
+        cmpDS('ICMR AMRSN (imipenem-R)', ICMR_ecoli_cr, 'icmr'),
+        cmpDS('NARS-Net (any carbapenem-R, blood)', NARS_ecoli_cr, 'nars'),
+        cmpDS('WHO GLASS (global median, BSI)',      GLASS_ecoli_cr,'glass'),
+      ]
+    },
+    options: cmpOpts(70)
+  });
+
+  // Klebsiella comparison
+  new Chart(document.getElementById('cmpKpChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels: CMP_YEARS,
+      datasets:[
+        cmpDS('ICMR AMRSN (imipenem-R)',            ICMR_kp_cr,  'icmr'),
+        cmpDS('NARS-Net (any carbapenem-R, blood)',  NARS_kp_cr,  'nars'),
+        cmpDS('WHO GLASS (global median, BSI)',       GLASS_kp_cr, 'glass'),
+      ]
+    },
+    options: cmpOpts(80)
+  });
+
+  // MRSA comparison
+  new Chart(document.getElementById('cmpMrsaChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels: CMP_YEARS,
+      datasets:[
+        cmpDS('ICMR AMRSN',            ICMR_mrsa,  'icmr'),
+        cmpDS('NARS-Net (all isolates)',NARS_mrsa,  'nars'),
+        cmpDS('WHO GLASS (global median)',GLASS_mrsa,'glass'),
+      ]
+    },
+    options: cmpOpts(80)
+  });
+
+  // Acinetobacter comparison
+  new Chart(document.getElementById('cmpAbauChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels: CMP_YEARS,
+      datasets:[
+        cmpDS('ICMR AMRSN',           ICMR_abau_cr, 'icmr'),
+        cmpDS('NARS-Net',             NARS_abau_cr,  'nars'),
+        cmpDS('WHO GLASS (global)',    GLASS_abau_cr, 'glass'),
+      ]
+    },
+    options: cmpOpts(100)
+  });
+
+  // Radar chart (2023 values, normalised 0-100)
+  new Chart(document.getElementById('cmpRadarChart').getContext('2d'),{
+    type:'radar',
+    data:{
+      labels:['E. coli CR%','K. pneumoniae CR%','MRSA %','Acinetobacter CR%'],
+      datasets:[
+        {label:'ICMR AMRSN (2023)',    data:[37.3,64.4,48.4,88.0], borderColor:'#1a3a5c', backgroundColor:'rgba(26,58,92,0.12)', pointBackgroundColor:'#1a3a5c', pointRadius:4},
+        {label:'NARS-Net (2023)',      data:[40,  54,  57,  88],   borderColor:'#e67e22', backgroundColor:'rgba(230,126,34,0.12)', pointBackgroundColor:'#e67e22', pointRadius:4},
+        {label:'WHO GLASS Global (2023)',data:[10, 11,  38,  62],   borderColor:'#2980b9', backgroundColor:'rgba(41,128,185,0.12)', pointBackgroundColor:'#2980b9', pointRadius:4},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},usePointStyle:true}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{r:{min:0,max:100,ticks:{stepSize:20,callback:v=>v+'%',font:{size:9}},
+        pointLabels:{font:{size:11}},grid:{color:'rgba(0,0,0,0.08)'}}}
+    }
+  });
+
+  // Concordance summary table
+  const CONC = [
+    {metric:'E. coli — Carbapenem-R',  icmr:37.3,nars:40,  glass:10,  dir:'Higher than global', agree:'Concordant'},
+    {metric:'K. pneumoniae — CR',       icmr:64.4,nars:54,  glass:11,  dir:'Higher than global', agree:'Moderate diff'},
+    {metric:'MRSA',                     icmr:48.4,nars:57,  glass:38,  dir:'Both above global',  agree:'Moderate diff'},
+    {metric:'Acinetobacter — CR',       icmr:88.0,nars:88,  glass:62,  dir:'Far above global',   agree:'Concordant'},
+    {metric:'E. coli — ESBL/3GC-R',    icmr:null, nars:82,  glass:44.8,dir:'India far higher',   agree:'NARS only'},
+    {metric:'K. pneumoniae — 3GC-R',   icmr:null, nars:79,  glass:57,  dir:'India higher',       agree:'NARS only'},
+  ];
+  document.getElementById('cmpConcordBody').innerHTML = CONC.map(row=>{
+    const fmt=(v)=>v===null?`<td class="hm-na">N/A</td>`:
+      (()=>{const c=hmColor(v);return `<td style="background:${c.bg};color:${c.text};text-align:center">${c.label}</td>`;})();
+    const agColor = row.agree==='Concordant'?'#d1fae5;color:#065f46':row.agree==='Moderate diff'?'#fef9c3;color:#78350f':'#eff6ff;color:#1e40af';
+    return `<tr>
+      <td class="hm-row-label">${row.metric}</td>
+      ${fmt(row.icmr)}${fmt(row.nars)}${fmt(row.glass)}
+      <td style="font-size:0.76rem;color:#374151">${row.dir}</td>
+      <td><span class="badge" style="background:${agColor}">${row.agree}</span></td>
+    </tr>`;
+  }).join('');
+})();
+
+// Loading
+window.addEventListener('load',()=>{
+  setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.remove(),300);},200);
+});
+</script>
+</body>
+</html>
